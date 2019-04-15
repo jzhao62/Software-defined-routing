@@ -1,6 +1,6 @@
 /**
- * @bilinshi_assignment3
- * @author  Bilin Shi <bilinshi@buffalo.edu>
+ * @swetankk_assignment3
+ * @author  Swetank Kumar Saha <swetankk@buffalo.edu>
  * @version 1.0
  *
  * @section LICENSE
@@ -18,8 +18,12 @@
  *
  * @section DESCRIPTION
  *
- * This contains the main function. Add further description here....
+ * This contains the main function. Read the CONTROL_PORT and start
+ * the connection manager.
  */
+
+#include "../include/global.h"
+#include "../include/connection_manager.h"
 
 /**
  * main function
@@ -28,13 +32,12 @@
  * @param  argv The argument list
  * @return 0 EXIT_SUCCESS
  */
-#include "../include/global.h"
-#include "../include/connection_manager.h"
-
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     /*Start Here*/
-    uint16_t control_port;
-    sscanf(argv[1], "%hu", &control_port); // get control port from command
-    run(control_port); // run program
+
+    sscanf(argv[1], "%" SCNu16, &CONTROL_PORT);
+    init(); // Initialize connection manager; This will block
+
     return 0;
 }

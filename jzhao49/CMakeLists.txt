@@ -7,16 +7,16 @@ project (p3)
 include_directories(include)
 include_directories(src)
 add_executable(p3
+        include/author.h
         include/connection_manager.h
         include/control_handler.h
-        include/data_handler.h
+        include/control_header_lib.h
         include/global.h
-        include/header.h
-        include/utils.h
-        src/bilinshi_assignment3.cpp
-        src/connection_manager.cpp
-        src/control_handler.cpp
-        src/data_handler.cpp
-        src/header.cpp
-        src/utils.cpp)
+        include/network_util.h
+        src/author.c
+        src/connection_manager.c
+        src/control_handler.c
+        src/control_header_lib.c
+        src/network_util.c
+        src/swetankk_assignment3.c)
 

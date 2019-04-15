@@ -1,28 +1,17 @@
-//
-// Created by bilin on 11/29/18.
-//
-
-#ifndef PROJECT_GLOBAL_H
-#define PROJECT_GLOBAL_H
+#ifndef GLOBAL_H_
+#define GLOBAL_H_
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <inttypes.h>
 
-//typedef enum {FALSE, TRUE} bool;
+typedef enum {FALSE, TRUE} bool;
 
 #define ERROR(err_msg) {perror(err_msg); exit(EXIT_FAILURE);}
 
-#define AUTHOR 0x00
-#define INIT 0x01
-#define ROUTING_TABLE 0x02
-#define UPDATE 0x03
-#define CRASH 0x04
-#define SENDFILE 0x05
-#define SENDFILE_STATS 0x06
-#define LAST_DATA_PACKET 0x07
-#define PENULTIMATE_DATA_PACKET 0x08
+/* https://scaryreasoner.wordpress.com/2009/02/28/checking-sizeof-at-compile-time/ */
+#define BUILD_BUG_ON(condition) ((void)sizeof(char[1 - 2*!!(condition)])) // Interesting stuff to read if you are interested to know how this works
 
-#define INF 65535
+uint16_t CONTROL_PORT;
 
-#endif //PROJECT_GLOBAL_H
+#endif
