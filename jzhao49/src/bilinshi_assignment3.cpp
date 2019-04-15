@@ -1,6 +1,6 @@
 /**
- * @jzhao49_assignment3
- * @author  jingyi <jzhao49@buffalo.edu>
+ * @bilinshi_assignment3
+ * @author  Bilin Shi <bilinshi@buffalo.edu>
  * @version 1.0
  *
  * @section LICENSE
@@ -28,9 +28,13 @@
  * @param  argv The argument list
  * @return 0 EXIT_SUCCESS
  */
-int main(int argc, char **argv)
-{
-	/*Start Here*/
-	
-	return 0;
+#include "../include/global.h"
+#include "../include/connection_manager.h"
+
+int main(int argc, char **argv) {
+    /*Start Here*/
+    uint16_t control_port;
+    sscanf(argv[1], "%hu", &control_port); // get control port from command
+    run(control_port); // run program
+    return 0;
 }
