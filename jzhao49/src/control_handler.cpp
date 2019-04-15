@@ -241,6 +241,7 @@ void author(int sock_index) {
     payload_len = sizeof(AUTHOR_STATEMENT) - 1; // Discount the NULL character
     ctrl_response_payload = (char *) malloc(payload_len);
     memcpy(ctrl_response_payload, AUTHOR_STATEMENT, payload_len);
+    cout << AUTHOR_STATEMENT << endl;
 
     ctrl_response_header = create_response_header(sock_index, 0, 0, payload_len);
 
