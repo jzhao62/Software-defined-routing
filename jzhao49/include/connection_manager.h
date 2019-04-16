@@ -1,9 +1,5 @@
-//
-// Created by bilin on 11/29/18.
-//
 
-#ifndef BILINSHI_CONNECTION_MANAGER_H
-#define BILINSHI_CONNECTION_MANAGER_H
+
 
 #include <stdint.h>
 #include <sys/select.h>
@@ -36,4 +32,3 @@ struct __attribute__((__packed__)) Route_Content {
 
 };
 
-#endif //BILINSHI_CONNECTION_MANAGER_H

@@ -11,12 +11,12 @@ add_executable(p3
         include/control_handler.h
         include/data_handler.h
         include/global.h
-        include/header.h
-        include/utils.h
-        src/bilinshi_assignment3.cpp
+        include/control_header_lib.h
+        include/network_utils.h
+        src/jzhao49.cpp
         src/connection_manager.cpp
         src/control_handler.cpp
         src/data_handler.cpp
-        src/header.cpp
-        src/utils.cpp)
+        src/control_header_lib.cpp
+        src/network_utils.cpp)
 

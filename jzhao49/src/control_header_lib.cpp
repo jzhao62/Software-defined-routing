@@ -4,8 +4,9 @@
 #include <string.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
-#include "../include/header.h"
+#include "control_header_lib.h"
 #include "../include/global.h"
+
 
 char *create_response_header(int sock_index, uint8_t control_code, uint8_t response_code, uint16_t payload_len) {
     char *buffer;

@@ -51,7 +51,7 @@ struct __attribute__((__packed__)) Route_Header {
     uint32_t source_ip;
 };
 
-struct __attribute__((__packed__)) Init_Payload {
+struct __attribute__((__packed__)) Init_Payoad {
     uint16_t router_id;
     uint16_t router_port;
     uint16_t data_port;

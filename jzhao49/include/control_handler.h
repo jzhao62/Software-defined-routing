@@ -2,10 +2,9 @@
 // Created by bilin on 11/29/18.
 //
 
-#ifndef BILINSHI_CONTROL_HANDLER_H
-#define BILINSHI_CONTROL_HANDLER_H
 
-#define AUTHOR_STATEMENT "I, bilinshi, have read and understood the course academic integrity policy."
+
+#define AUTHOR_STATEMENT "I, Jingyi, have read and understood the course academic integrity policy."
 
 #include <stdint.h>
 #include <vector>
@@ -17,13 +16,13 @@ struct Remote_DV {
 };
 
 struct Routing {
-    uint16_t dest_id;
-    uint16_t dest_route_port;
-    uint16_t dest_data_port;
-    uint16_t dest_cost;
-    uint32_t dest_ip;
+    uint16_t id;
+    uint16_t route_port;
+    uint16_t data_port;
+    uint16_t c;
+    uint32_t ip;
+    uint16_t total_cost;
     uint16_t next_hop_id;
-    uint16_t path_cost;
     std::vector<Remote_DV> remote_dv;
 };
 
@@ -56,7 +55,7 @@ extern char *file_buffer;
 extern int datagram_count;
 
 
-int create_control_sock(uint16_t control_port);
+int create_control_sock(uint16_t CONTROL_PORT);
 
 int create_route_sock(uint16_t router_port);
 
@@ -74,28 +73,4 @@ bool control_recv_hook(int sock_index);
 
 void author(int sock_index);
 
-void init(int sock_index, char *payload);
-
-void routing_table(int sock_index);
-
-void update(int sock_index, char *payload);
-
-void crash(int sock_index);
-
-void send_file(int sock_index, char *payload, uint16_t payload_len);
-
-void send_file_stats(int sock_index, char *payload);
-
-void last_data_packet(int sock_index);
-
-void penultimate_data_packet(int sock_index);
-
-void update_routing_table(int sock_index);
-
-void send_dv();
-
-char *create_distance_vector();
-
-char *create_data_packet(uint32_t dest_ip, uint8_t transfer_id, uint8_t ttl, uint16_t seq_num, int fin, char *payload);
-
-#endif //BILINSHI_CONTROL_HANDLER_H
+void initialize(int sock_index, char* payload);
