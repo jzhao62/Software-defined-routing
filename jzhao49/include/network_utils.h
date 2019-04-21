@@ -11,7 +11,9 @@
 #include <stdint.h>
 #include <netinet/in.h>
 #include <strings.h>
+#include <vector>
 
+using namespace std;
 
 ssize_t recvALL(int sock_index, char *buffer, ssize_t nbytes);
 
@@ -22,5 +24,12 @@ struct timeval diff_tv(struct timeval tv1, struct timeval tv2);
 struct timeval add_tv(struct timeval tv1, struct timeval tv2);
 
 ssize_t send_udp(int sock_index, char *buffer, ssize_t nbytes, uint32_t ip, uint16_t port);
+
+
+void initialize_dv(vector<vector<int>> &DV, int id, int total_routers);
+
+void display_routing_table(vector<vector<int>> &DV);
+
+
 
 #endif //BILINSHI_UTILS_H

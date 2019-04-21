@@ -15,14 +15,14 @@ struct Remote_DV {
     uint16_t cost;
 };
 
-struct Routing {
+struct Router {
     uint16_t id;
     uint16_t route_port;
     uint16_t data_port;
     uint16_t c;
     uint32_t ip;
-    uint16_t total_cost;
-    uint16_t next_hop_id;
+//    uint16_t total_cost;
+//    uint16_t next_hop_id;
     std::vector<Remote_DV> remote_dv;
 };
 
@@ -45,7 +45,7 @@ struct Transfer_File {
     std::vector<uint16_t> sequence;
 };
 
-extern std::vector<Routing> table;
+extern std::vector<Router> table;
 extern std::vector<Timeout> routers_timeout;
 extern std::vector<Transfer_File> transfer_files;
 

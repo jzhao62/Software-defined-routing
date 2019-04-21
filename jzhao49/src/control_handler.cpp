@@ -17,14 +17,22 @@
 #include "network_utils.h"
 #include <iostream>
 #include <map>
+#include <climits>
+
 using namespace std;
 
 vector<int> control_conn_list;
 
-map<uint16_t , Routing > routing_table;
+map<uint16_t , Router > neighbors;
 
-Routing self;
+vector<vector<int>> DV;
 
+
+
+
+Router self;
+
+uint16_t next_hopper;
 
 
 int router_socket;
@@ -56,6 +64,34 @@ int create_control_sock(uint16_t CONTROL_PORT) {
 
     return sock;
 }
+
+int create_route_sock(uint16_t router_port){
+    int sock;
+    struct sockaddr_in router_addr;
+    socklen_t addrlen = sizeof(router_addr);
+
+    sock = socket(AF_INET, SOCK_STREAM, 0);
+    if (sock < 0) ERROR("socket() failed");
+
+    /* Make socket re-usable */
+    int opt = 1;
+    if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (const void *) &opt, sizeof(opt)) < 0) ERROR("setsockopt() failed");
+
+    bzero(&router_addr, sizeof(router_addr));
+
+    router_addr.sin_family = AF_INET;
+    router_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    router_addr.sin_port = htons(router_port);
+
+    if (bind(sock, (struct sockaddr *) &router_addr, sizeof(router_addr)) < 0) ERROR("bind() failed");
+
+    if (listen(sock, 5) < 0) ERROR("listen() failed");
+
+
+    return sock;
+}
+
+
 
 int new_control_conn(int sock_index) {
     int fdaccept, caddr_len;
@@ -138,10 +174,9 @@ bool control_recv_hook(int sock_index) {
             break;
         case INIT:
             initialize(sock_index, cntrl_payload);
-
-
             break;
         case ROUTING_TABLE:
+
             break;
         case UPDATE:
             break;
@@ -179,13 +214,18 @@ void author(int sock_index) {
     uint16_t payload_len, response_len;
     char *ctrl_response_header, *ctrl_response_payload, *ctrl_response;
 
+
+    // length of the AUTHOR statement
     payload_len = sizeof(AUTHOR_STATEMENT) - 1; // Discount the NULL character
     ctrl_response_payload = (char *) malloc(payload_len);
+
     memcpy(ctrl_response_payload, AUTHOR_STATEMENT, payload_len);
     cout << AUTHOR_STATEMENT << endl;
 
     ctrl_response_header = create_response_header(sock_index, 0, 0, payload_len);
 
+
+    // length of the entire response
     response_len = CONTROL_HEADER_SIZE + payload_len;
     ctrl_response = (char *) malloc(response_len);
     /* Copy Header */
@@ -196,11 +236,21 @@ void author(int sock_index) {
     sendALL(sock_index, ctrl_response, response_len);
 }
 
+/**
+ * Contains the data required to initialize a router.
+ * It lists the number of routers in the network, their IP address, router and data port numbers, and, the initial costs of the links to all routers.
+ * It also contains the periodic interval (in seconds) for the routing updates to be broadcast to all neighbors (routers directly connected).
 
+Note that the link cost value to all the routers, except the neighbors, will be INF (infinity). Further, there will be an entry to self as well with cost set to 0.
+
+The router, after receiving this message, should start broadcasting the routing updates and performing other operations required by the distance vector protocol, after one periodic interval.
+ * @param sock_index
+ * @param payload
+ */
 void initialize(int sock_index, char* payload){
 
 
-    struct Routing r;
+    struct Router r;
     uint16_t router_number;
     uint16_t time_interval;
     uint16_t curr_router_id;
@@ -246,6 +296,7 @@ void initialize(int sock_index, char* payload){
 
         memcpy(&curr_cost, payload + overhead, sizeof(curr_cost));
         curr_cost = ntohs(curr_cost);
+
         overhead += 2;
 
         memcpy(&curr_router_ip, payload + overhead, sizeof(curr_router_ip));
@@ -258,25 +309,21 @@ void initialize(int sock_index, char* payload){
         r.data_port = curr_data_port;
         r.c = curr_cost;
         r.ip = curr_router_ip;
-        r.total_cost = curr_cost;
 
-        routing_table[curr_router_id] = r;
+
+        if(curr_cost == 65535) continue;
+
+        neighbors[curr_router_id] = r;
+
 
 
         if(curr_cost == 0){
-
             self.id = curr_router_id;
-            self.total_cost = 0;
             self.data_port = curr_data_port;
             self.route_port = curr_router_port;
             self.ip = curr_router_ip;
             self.c = 0;
-
         }
-
-
-
-
 
         /* init timeout list */
 
@@ -284,41 +331,82 @@ void initialize(int sock_index, char* payload){
 //    /* after init, we can set waiting time for select(), at first, wait T and send dv */
 
 
+
+
+    initialize_dv(DV, int(self.id), int(router_number));
+
+
+
+    vector<vector<int>> *tmp_dv = &DV;
+
+
+    for(auto n : neighbors){
+
+        int id = int(n.first);
+        int cost = int(n.second.c);
+
+        DV[id-1][id-1] = cost;
+
+    }
+
+
+    display_routing_table(DV);
+
+
+
+
+
+
+
+
+
     char *ctrl_response_header, *ctrl_response_payload, *ctrl_response;
 
     int response_len;
-    uint16_t payload_len =22;
+    uint16_t payload_len = 0;
 
 
     ctrl_response_header = create_response_header(sock_index, 0X01, 0X00, payload_len);
 
     response_len = CONTROL_HEADER_SIZE + payload_len;
-    ctrl_response = (char *) malloc(response_len);
-    /* Copy Header */
-    memcpy(ctrl_response, ctrl_response_header, CONTROL_HEADER_SIZE);
-    /* Copy Payload */
-    memcpy(ctrl_response + CONTROL_HEADER_SIZE, ctrl_response_payload, payload_len);
 
+    ctrl_response = (char *) malloc(response_len);
+    memcpy(ctrl_response, ctrl_response_header, CONTROL_HEADER_SIZE);
+    memcpy(ctrl_response + CONTROL_HEADER_SIZE, ctrl_response_payload, payload_len);
     sendALL(sock_index, ctrl_response, response_len);
 
 
     router_socket = create_route_sock(self.route_port);
-    data_socket = create_data_sock(self.data_port);
 
+    cout << "craeted router_socket " << router_socket << endl;
 
     FD_SET(router_socket, &master_list);
-    FD_SET(data_socket, &master_list);
+    if(router_socket > head_fd) head_fd = router_socket;
+
+    first_time = true;
+
+//    data_socket = create_data_sock(self.data_port);
 
 
-
-
+//    FD_SET(data_socket, &master_list);
 
 //    /* response to controller */
 
 //    /* create router listening socket and data listening socket */
+}
 
+/**
+ * The controller uses this to request the current routing/forwarding table from a given router.
+ * The table sent as a response should contain an entry for each router in the network (including self) consisting of the next hop router ID (on the least cost path to that router) and the cost of the path to it.
+ */
+
+void request_routing_table(int sock_index){
 
 
 
 }
+
+
+
+
 

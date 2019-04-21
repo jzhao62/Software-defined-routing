@@ -29,16 +29,13 @@ int head_fd;
 
 
 void run(uint16_t control_port) {
-    control_socket = create_control_sock(control_port); // create first socket, bind to control port to listen
-
-    //router_socket and data_socket will be initialized after INIT from controller
+    control_socket = create_control_sock(control_port);
 
     FD_ZERO(&master_list);
     FD_ZERO(&watch_list);
 
-    /* Register the control socket */
     FD_SET(control_socket, &master_list);
-    head_fd = control_socket; // head_fd set to maximum, it can be changed anytime a new socket is created
+    head_fd = control_socket;
 
     main_loop(); // main function
 }
@@ -52,42 +49,35 @@ void main_loop() {
 
     next_event_time.tv_sec = 0; // init
 
-    struct timeval cur;
-    struct timeval cur_no_timeout;
-
     while (true) {
-        gettimeofday(&cur, NULL);
-        cout << "[starting loop] current time: " << cur.tv_sec << endl;
 
         watch_list = master_list;
-        if (first_time) { // if routing table is not initialized, we can only deal with command from controller
+        if (first_time) {
             selret = select(head_fd + 1, &watch_list, NULL, NULL, NULL);
-//            cout << "time peroid before init: " << time_period << endl;
-            cout << "not received init yet!" << endl;
-        } else {
+
+        }
+        else {
             /**
              * now we have routing table, we wait for "tv" time to trigger the next event.
              * it can be either send dv or delete neighbor and update routing table(if we didn't receive dv from
              * it for 3T time)
              * */
 //            cout << "time period after init: " << time_period << endl;
-            cout << "waiting for tv=" << tv.tv_sec << "." << tv.tv_usec / 100000 << "s..." << endl;
             selret = select(head_fd + 1, &watch_list, NULL, NULL, &tv);
         }
 
-        gettimeofday(&cur, NULL);
-        cout << "[after select] current time: " << cur.tv_sec << endl;
 
         if (selret < 0) ERROR("select failed.");
 
 
 
 
-
-        /* Loop through file descriptors to check which ones are ready */
         for (sock_index = 0; sock_index <= head_fd; sock_index += 1) {
 
+
             if (FD_ISSET(sock_index, &watch_list)) {
+                cout << "curr sock "<< sock_index << endl;
+
 
                 /* control_socket */
                 if (sock_index == control_socket) {// TCP, need to create a new connection

@@ -3,6 +3,11 @@
 //
 
 #include "network_utils.h"
+#include <vector>;
+#include<bits/stdc++.h>
+
+
+using namespace std;
 
 ssize_t recvALL(int sock_index, char *buffer, ssize_t nbytes) {
     ssize_t bytes = 0;
@@ -29,3 +34,33 @@ ssize_t sendALL(int sock_index, char *buffer, ssize_t nbytes) {
 
 
 
+
+
+void initialize_dv(vector<vector<int>> &DV, int router_id, int total_routers){
+
+    DV.resize(total_routers, vector<int>(total_routers,INT_MAX));
+
+
+    for(int i = 0; i < DV.size(); i++){
+        for(int j = 0; j < DV[0].size(); j++){
+            if(i == router_id - 1 || j == router_id-1) DV[i][j] = 0;
+
+        }
+    }
+
+    return;
+
+}
+
+
+
+void display_routing_table(vector<vector<int>> &DV){
+    for(int i = 0; i < DV.size(); i++){
+        for(int j = 0; j < DV[0].size(); j++){
+            int value = DV[i][j] == INT_MAX ? 99 : DV[i][j];
+            cout << value << "\t";
+        }
+        cout << endl;
+    }
+
+}
