@@ -92,6 +92,8 @@ void main_loop() {
                     /* router_socket */
                 else if (sock_index == router_socket) {
 
+                    cout << "routing packet" << endl;
+
                 }
 
                     /* data_socket */

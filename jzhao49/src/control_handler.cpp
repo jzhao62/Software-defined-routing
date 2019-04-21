@@ -70,7 +70,7 @@ int create_route_sock(uint16_t router_port){
     struct sockaddr_in router_addr;
     socklen_t addrlen = sizeof(router_addr);
 
-    sock = socket(AF_INET, SOCK_STREAM, 0);
+    sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock < 0) ERROR("socket() failed");
 
     /* Make socket re-usable */
