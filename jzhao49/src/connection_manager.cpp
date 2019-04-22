@@ -144,8 +144,15 @@ void main_loop() {
             cout << "[timeout] next event time is: " << next_event_time.tv_sec << endl;
             continue;
         }
-        /* Loop through file descriptors to check which ones are ready */
+
+        cout << endl;
+        cout << "default " << control_socket << " " << router_socket << " " << data_socket << endl;
+        cout << endl;
+
+
         for (sock_index = 0; sock_index <= head_fd; sock_index += 1) {
+
+           cout << "curr sock " << sock_index << endl;
 
             if (FD_ISSET(sock_index, &watch_list)) {
 
@@ -161,7 +168,9 @@ void main_loop() {
 
                     /* router_socket */
                 else if (sock_index == router_socket) {
-                    cout << "[routing packet]" << endl;
+
+
+                    cout << "[routing packet on ]" << sock_index << endl;
                     /* receive dv from neighbors, should update routing table and waiting time(if needed) */
                     update_routing_table(sock_index);
                 }

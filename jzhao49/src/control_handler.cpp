@@ -137,6 +137,10 @@ int new_route_conn(uint32_t remote_ip, uint16_t remote_port, uint16_t remote_id)
     neighbor.ip = remote_ip;
     neighbor.port = remote_port;
     neighbors.push_back(neighbor);
+
+    cout << "created sock " << sock << " for " << neighbor.router_id <<endl;
+    cout << endl;
+
     return sock;
 }
 
@@ -363,9 +367,12 @@ void init(int sock_index, char *payload) {
     sendALL(sock_index, ctrl_response, CONTROL_HEADER_SIZE);
 
     /* create router listening socket and data listening socket */
-    cout << "creating router socket..." << endl;
     router_socket = create_route_sock(my_router_port);
     FD_SET(router_socket, &master_list);
+
+    cout << "creating router socket... " << router_socket << endl;
+
+
     if (router_socket > head_fd) head_fd = router_socket;
 
     cout << "creating data socket..." << endl;
@@ -376,10 +383,13 @@ void init(int sock_index, char *payload) {
     next_event_time = next_send_time; // init next_event_time, assume init() called only once++++++++++
 
     /* malloc last_packet and penultimate_packet */
-    last_packet = (char *) malloc(sizeof(char) * DATA_PAYLOAD);
-    bzero(last_packet, DATA_PAYLOAD + 12);
-    penultimate_packet = (char *) malloc(sizeof(char) * DATA_PAYLOAD);
-    bzero(penultimate_packet, DATA_PAYLOAD + 12);
+//    last_packet = (char *) malloc(sizeof(char) * DATA_PAYLOAD);
+//    bzero(last_packet, DATA_PAYLOAD + 12);
+//    penultimate_packet = (char *) malloc(sizeof(char) * DATA_PAYLOAD);
+//    bzero(penultimate_packet, DATA_PAYLOAD + 12);
+
+
+
     file_buffer = (char *) malloc(sizeof(char) * 10000 * DATA_PAYLOAD);
     bzero(file_buffer, 10000 * DATA_PAYLOAD);
 
@@ -409,6 +419,12 @@ void routing_table(int sock_index) {
         cost = htons(table[i].dest_cost);
         memcpy(ctrl_response_payload + offset, &cost, sizeof(cost));
         offset += 2;
+
+
+        cout << "--------------" << endl;
+        cout << table[i].dest_id << " with cost "<< table[i].dest_cost << " with next_hop " << table[i].next_hop_id << endl;
+        cout << "--------------" << endl;
+
     }
 
     /* generate succeed header */
@@ -962,8 +978,7 @@ void send_dv() {
     int update_num = (int) table.size();
     for (int i = 0; i < neighbors.size(); i++) {
         cout << "send dv to router " << neighbors[i].router_id << endl;
-        if (send_udp(neighbors[i].socket, dv, ROUTING_HEADER_SIZE + update_num * ROUTING_CONTENT_SIZE, neighbors[i].ip,
-                     neighbors[i].port) < 0) {
+        if (send_udp(neighbors[i].socket, dv, ROUTING_HEADER_SIZE + update_num * ROUTING_CONTENT_SIZE, neighbors[i].ip,neighbors[i].port) < 0) {
             cout << "Send DV fail" << endl;
         }
     }

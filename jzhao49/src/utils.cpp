@@ -59,8 +59,7 @@ ssize_t send_udp(int sock_index, char *buffer, ssize_t nbytes, uint32_t ip, uint
     remote_router_addr.sin_addr.s_addr = htonl(ip);
     remote_router_addr.sin_port = htons(port);
 
-    bytes = sendto(sock_index, buffer, (size_t) nbytes, 0, (struct sockaddr *) &remote_router_addr,
-                   addrlen);
+    bytes = sendto(sock_index, buffer, (size_t) nbytes, 0, (struct sockaddr *) &remote_router_addr,addrlen);
 
     if (bytes == 0) return -1;
 
