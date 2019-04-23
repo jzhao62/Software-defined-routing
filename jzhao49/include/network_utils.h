@@ -2,9 +2,6 @@
 // Created by bilin on 11/29/18.
 //
 
-#ifndef BILINSHI_UTILS_H
-#define BILINSHI_UTILS_H
-
 #include <stdlib.h>
 #include <sys/socket.h>
 #include <sys/time.h>
@@ -12,6 +9,9 @@
 #include <netinet/in.h>
 #include <strings.h>
 #include <vector>
+
+
+
 
 using namespace std;
 
@@ -32,4 +32,3 @@ void display_routing_table(vector<vector<int>> &DV);
 
 
 
-#endif //BILINSHI_UTILS_H

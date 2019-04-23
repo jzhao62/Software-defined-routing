@@ -9,6 +9,8 @@
 #include <stdint.h>
 #include <vector>
 #include <sys/time.h>
+#include <map>
+using namespace std;
 
 struct Remote_DV {
     uint16_t dest_id;
@@ -59,6 +61,11 @@ int create_control_sock(uint16_t CONTROL_PORT);
 
 int create_route_sock(uint16_t router_port);
 
+int create_data_sock(uint16_t data_sock);
+
+
+
+
 int new_control_conn(int sock_index);
 
 void remove_control_conn(int sock_index);
@@ -74,3 +81,6 @@ bool control_recv_hook(int sock_index);
 void author(int sock_index);
 
 void initialize(int sock_index, char* payload);
+
+
+void udp_broad_cast_hello(uint16_t local_port , map<uint16_t , Router > &neighbors);

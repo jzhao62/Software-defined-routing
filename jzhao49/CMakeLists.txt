@@ -13,10 +13,12 @@ add_executable(p3
         include/global.h
         include/control_header_lib.h
         include/network_utils.h
+        include/PracticalSocket.h
         src/jzhao49.cpp
         src/connection_manager.cpp
         src/control_handler.cpp
         src/data_handler.cpp
         src/control_header_lib.cpp
-        src/network_utils.cpp)
+        src/network_utils.cpp
+        src/PracticalSocket.cpp)
 

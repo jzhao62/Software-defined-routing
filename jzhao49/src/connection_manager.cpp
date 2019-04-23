@@ -10,6 +10,7 @@
 
 #include <vector>
 #include <iostream>
+#include <cstring>
 
 using namespace std;
 
@@ -19,13 +20,52 @@ struct timeval tv;
 struct timeval next_event_time;
 
 
+
 bool first_time;
-
-void main_loop();
-
 fd_set master_list;
 fd_set watch_list;
 int head_fd;
+
+
+void main_loop();
+
+
+
+
+
+void udp_broad_cast_hello(uint16_t local_port , map<uint16_t , Router > &neighbors){
+    cout << "send dv to neighbors!" << endl;
+    char *dv  = "HELLO ";
+    for (auto a : neighbors) {
+
+        cout << "sending hello to neighbor " << a.first << " whose ip is" << a.second.ip << " and whose router port is " << a.second.route_port << endl;
+
+        string destAddress = to_string(a.second.ip);             // First arg:  destination address
+        unsigned short destPort = a.second.route_port;  // Second arg: destination port
+
+
+        char* sendString = "GGWP";
+
+        try {
+            UDPSocket sock;
+
+            sock.sendTo(sendString, strlen(sendString), destAddress, destPort);
+
+        } catch (SocketException &e) {
+            cerr << e.what() << endl;
+            exit(1);
+        }
+
+
+
+
+    }
+
+
+
+
+}
+
 
 
 void run(uint16_t control_port) {
@@ -33,7 +73,6 @@ void run(uint16_t control_port) {
 
     FD_ZERO(&master_list);
     FD_ZERO(&watch_list);
-
     FD_SET(control_socket, &master_list);
     head_fd = control_socket;
 
@@ -49,6 +88,10 @@ void main_loop() {
 
     next_event_time.tv_sec = 0; // init
 
+
+
+
+
     while (true) {
 
         watch_list = master_list;
@@ -57,12 +100,13 @@ void main_loop() {
 
         }
         else {
-            /**
-             * now we have routing table, we wait for "tv" time to trigger the next event.
-             * it can be either send dv or delete neighbor and update routing table(if we didn't receive dv from
-             * it for 3T time)
-             * */
-//            cout << "time period after init: " << time_period << endl;
+
+            cout << "Initialized..." << endl;
+
+            for(auto a : immediate_neighbors){
+                cout << a.first << "\t" << a.second << endl;
+            }
+
             selret = select(head_fd + 1, &watch_list, NULL, NULL, &tv);
         }
 
@@ -71,16 +115,25 @@ void main_loop() {
 
 
 
+        if(selret == 0){
+            cout << "Timeout " << endl;
+//            udp_broad_cast_hello(my_router_port, )
+            break;
+        }
+
+
+
 
         for (sock_index = 0; sock_index <= head_fd; sock_index += 1) {
 
 
             if (FD_ISSET(sock_index, &watch_list)) {
-                cout << "curr sock "<< sock_index << endl;
 
 
                 /* control_socket */
                 if (sock_index == control_socket) {// TCP, need to create a new connection
+                    cout << "curr sock is control socket "<< sock_index << endl;
+
 
                     fdaccept = new_control_conn(sock_index); // create a tcp socket to handle controller commands
 
@@ -98,6 +151,8 @@ void main_loop() {
 
                     /* data_socket */
                 else if (sock_index == data_socket) {// TCP, need to create link
+                    cout << "curr sock is data socket " << sock_index << endl;
+
 
                 }
 

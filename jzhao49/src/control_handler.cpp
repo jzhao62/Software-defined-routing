@@ -18,19 +18,26 @@
 #include <iostream>
 #include <map>
 #include <climits>
+#include "PracticalSocket.h"
+
+
+const int MAXRCVSTRING = 4096; // Longest string to receive
+
 
 using namespace std;
 
 vector<int> control_conn_list;
-
 map<uint16_t , Router > neighbors;
-
+Router self;
 vector<vector<int>> DV;
 
+vector<pair<uint16_t, uint16_t >> immediate_neighbors;
 
 
 
-Router self;
+
+
+
 
 uint16_t next_hopper;
 
@@ -85,11 +92,38 @@ int create_route_sock(uint16_t router_port){
 
     if (bind(sock, (struct sockaddr *) &router_addr, sizeof(router_addr)) < 0) ERROR("bind() failed");
 
+    return sock;
+}
+
+int create_data_sock(uint16_t data_sock){
+    int sock;
+    struct sockaddr_in router_addr;
+    socklen_t addrlen = sizeof(router_addr);
+
+    sock = socket(AF_INET, SOCK_STREAM, 0);
+    if (sock < 0) ERROR("socket() failed");
+
+    /* Make socket re-usable */
+    int opt = 1;
+    if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (const void *) &opt, sizeof(opt)) < 0) ERROR("setsockopt() failed");
+
+    bzero(&router_addr, sizeof(router_addr));
+
+    router_addr.sin_family = AF_INET;
+    router_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    router_addr.sin_port = htons(data_sock);
+
+    if (bind(sock, (struct sockaddr *) &router_addr, sizeof(router_addr)) < 0) ERROR("bind() failed");
+
     if (listen(sock, 5) < 0) ERROR("listen() failed");
 
 
     return sock;
+
+
+
 }
+
 
 
 
@@ -210,6 +244,10 @@ bool control_recv_hook(int sock_index) {
 
 
 
+
+
+
+
 void author(int sock_index) {
     uint16_t payload_len, response_len;
     char *ctrl_response_header, *ctrl_response_payload, *ctrl_response;
@@ -301,6 +339,10 @@ void initialize(int sock_index, char* payload){
 
         memcpy(&curr_router_ip, payload + overhead, sizeof(curr_router_ip));
         curr_router_ip = ntohl(curr_router_ip);
+
+        cout << curr_router_ip << endl;
+
+
         overhead += 4;
 
 
@@ -323,13 +365,16 @@ void initialize(int sock_index, char* payload){
             self.route_port = curr_router_port;
             self.ip = curr_router_ip;
             self.c = 0;
+            continue;
         }
+
+        immediate_neighbors.push_back({curr_router_ip, curr_router_port});
+
 
         /* init timeout list */
 
     }
 //    /* after init, we can set waiting time for select(), at first, wait T and send dv */
-
 
 
 
@@ -376,14 +421,57 @@ void initialize(int sock_index, char* payload){
     sendALL(sock_index, ctrl_response, response_len);
 
 
+//     open socket to hear from other routers
     router_socket = create_route_sock(self.route_port);
+    data_socket = create_data_sock(self.data_port);
+//
+//    FD_SET(router_socket, &master_list);
+//    FD_SET(router_socket, &master_list);
+//    if(router_socket > head_fd) head_fd = router_socket;
+//
+//
 
-    cout << "craeted router_socket " << router_socket << endl;
 
-    FD_SET(router_socket, &master_list);
-    if(router_socket > head_fd) head_fd = router_socket;
 
-    first_time = true;
+
+//    UDPSocket sock(self.route_port);
+
+//
+//    char recvString[MAXRCVSTRING + 1]; // Buffer for echo string + \0
+//    string sourceAddress;              // Address of datagram source
+//    unsigned short sourcePort;         // Port of datagram source
+
+
+
+
+//    while(true){
+//        int bytesRcvd = sock.recvFrom(recvString, MAXRCVSTRING, sourceAddress,sourcePort);
+//        recvString[bytesRcvd] = '\0';  // Terminate string
+//        cout << "Received " << recvString << " from " << sourceAddress << ": "<< sourcePort << endl;
+//    }
+
+
+
+
+    cout << "created " << router_socket << " and " << data_socket << endl;
+
+
+
+
+    tv.tv_sec = 5;
+    tv.tv_usec = 500000;
+
+
+
+
+
+
+
+
+
+
+
+    first_time = false;
 
 //    data_socket = create_data_sock(self.data_port);
 
@@ -405,8 +493,5 @@ void request_routing_table(int sock_index){
 
 
 }
-
-
-
 
 

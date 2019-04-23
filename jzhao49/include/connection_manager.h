@@ -4,8 +4,17 @@
 #include <stdint.h>
 #include <sys/select.h>
 #include <time.h>
+#include "PracticalSocket.h"
+#include <map>
+#include <vector>
 
 extern int control_socket, router_socket, data_socket;
+extern vector<pair<uint16_t, uint16_t >> immediate_neighbors;
+
+
+
+
+
 extern uint32_t my_ip;
 extern uint16_t my_router_port;
 extern uint16_t my_data_port;
