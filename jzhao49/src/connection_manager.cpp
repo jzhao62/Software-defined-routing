@@ -11,6 +11,7 @@
 #include <vector>
 #include <iostream>
 #include <cstring>
+#include <network_utils.h>
 
 using namespace std;
 
@@ -18,6 +19,8 @@ int control_socket;
 
 struct timeval tv;
 struct timeval next_event_time;
+const int MAXRCVSTRING = 4096; // Longest string to receive
+
 
 
 
@@ -32,19 +35,37 @@ void main_loop();
 
 
 
+void print_ip(unsigned int ip)
+{
+    unsigned char bytes[4];
+    bytes[0] = ip & 0xFF;
+    bytes[1] = (ip >> 8) & 0xFF;
+    bytes[2] = (ip >> 16) & 0xFF;
+    bytes[3] = (ip >> 24) & 0xFF;
+    printf("%d.%d.%d.%d\n", bytes[3], bytes[2], bytes[1], bytes[0]);
+}
 
-void udp_broad_cast_hello(uint16_t local_port , map<uint16_t , Router > &neighbors){
-    cout << "send dv to neighbors!" << endl;
-    char *dv  = "HELLO ";
+
+void udp_broad_cast_hello(uint16_t local_port , vector<pair<uint16_t, uint32_t >> &neighbors){
+    cout << "send hello to neighbors!" << endl;
+
     for (auto a : neighbors) {
 
-        cout << "sending hello to neighbor " << a.first << " whose ip is" << a.second.ip << " and whose router port is " << a.second.route_port << endl;
+        cout << "sending hello to neighbor " << a.second << " " << a.first << endl;
 
-        string destAddress = to_string(a.second.ip);             // First arg:  destination address
-        unsigned short destPort = a.second.route_port;  // Second arg: destination port
+        string destAddress = to_string(a.second);             // First arg:  destination address
+
+        print_ip(a.second);
+        unsigned short destPort = a.first;  // Second arg: destination port
 
 
-        char* sendString = "GGWP";
+        string tmp = "GGWP from " + to_string(local_port);
+
+        char sendString[tmp.size() + 1];
+        strcpy(sendString, tmp.c_str());	// or pass &s[0]
+
+
+//        char* sendString = "GGWP" + to_string(local_port);
 
         try {
             UDPSocket sock;
@@ -103,10 +124,6 @@ void main_loop() {
 
             cout << "Initialized..." << endl;
 
-            for(auto a : immediate_neighbors){
-                cout << a.first << "\t" << a.second << endl;
-            }
-
             selret = select(head_fd + 1, &watch_list, NULL, NULL, &tv);
         }
 
@@ -117,14 +134,14 @@ void main_loop() {
 
         if(selret == 0){
             cout << "Timeout " << endl;
-//            udp_broad_cast_hello(my_router_port, )
-            break;
+            udp_broad_cast_hello(my_router_port, immediate_neighbors);
         }
 
 
 
 
         for (sock_index = 0; sock_index <= head_fd; sock_index += 1) {
+            cout << sock_index << endl;
 
 
             if (FD_ISSET(sock_index, &watch_list)) {
@@ -146,6 +163,17 @@ void main_loop() {
                 else if (sock_index == router_socket) {
 
                     cout << "routing packet" << endl;
+
+                        char recvString[MAXRCVSTRING + 1]; // Buffer for echo string + \0
+                        string sourceAddress;              // Address of datagram source
+                        unsigned short sourcePort;         // Port of datagram source
+
+
+                        int bytesRcvd = udp_recvFrom(sock_index,recvString, MAXRCVSTRING, sourceAddress,sourcePort);
+                        recvString[bytesRcvd] = '\0';  // Terminate string
+                        cout << "Received " << recvString << " from " << sourceAddress << ": "<< sourcePort << endl;
+
+
 
                 }
 

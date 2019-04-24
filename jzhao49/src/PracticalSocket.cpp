@@ -35,6 +35,7 @@
 
 #include <errno.h>             // For errno
 #include <cstring>
+#include <global.h>
 
 using namespace std;
 
@@ -132,16 +133,43 @@ unsigned short Socket::getLocalPort() throw(SocketException) {
 }
 
 void Socket::setLocalPort(unsigned short localPort) throw(SocketException) {
-  // Bind the socket to its port
-  sockaddr_in localAddr;
-  memset(&localAddr, 0, sizeof(localAddr));
-  localAddr.sin_family = AF_INET;
-  localAddr.sin_addr.s_addr = htonl(INADDR_ANY);
-  localAddr.sin_port = htons(localPort);
+//  // Bind the socket to its port
+//  sockaddr_in localAddr;
+//
+//
+//
+//  memset(&localAddr, 0, sizeof(localAddr));
+//  localAddr.sin_family = AF_INET;
+//  localAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+//  localAddr.sin_port = htons(localPort);
+//
+//  if (bind(sockDesc, (sockaddr *) &localAddr, sizeof(sockaddr_in)) < 0) {
+//    throw SocketException("Set of local port failed (bind())", true);
+//  }
 
-  if (bind(sockDesc, (sockaddr *) &localAddr, sizeof(sockaddr_in)) < 0) {
-    throw SocketException("Set of local port failed (bind())", true);
-  }
+    int sock;
+    struct sockaddr_in router_addr;
+    socklen_t addrlen = sizeof(router_addr);
+
+    sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sock < 0) ERROR("socket() failed");
+
+    /* Make socket re-usable */
+    int opt = 1;
+    if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (const void *) &opt, sizeof(opt)) < 0) ERROR("setsockopt() failed");
+
+    bzero(&router_addr, sizeof(router_addr));
+
+    router_addr.sin_family = AF_INET;
+    router_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    router_addr.sin_port = htons(localPort);
+
+    if (bind(sock, (struct sockaddr *) &router_addr, sizeof(router_addr)) < 0) ERROR("bind() failed");
+
+    this->sockDesc = sock;
+
+
+
 }
 
 void Socket::setLocalAddressAndPort(const string &localAddress,

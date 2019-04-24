@@ -41,6 +41,8 @@ private:
  */
 class Socket {
 public:
+    int sockDesc;              // Socket descriptor
+
     /**
      *   Close and deallocate this socket
      */
@@ -109,7 +111,6 @@ private:
     void operator=(const Socket &sock);
 
 protected:
-    int sockDesc;              // Socket descriptor
     Socket(int type, int protocol) throw(SocketException);
     Socket(int sockDesc);
 };

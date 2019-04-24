@@ -5,7 +5,8 @@
 #include "network_utils.h"
 #include <vector>;
 #include<bits/stdc++.h>
-#include <PracticalSocket.h>
+#include <global.h>
+#include <arpa/inet.h>
 
 
 using namespace std;
@@ -67,3 +68,18 @@ void display_routing_table(vector<vector<int>> &DV){
 }
 
 
+
+int udp_recvFrom(int sock, void *buffer, int bufferLen, string &sourceAddress,unsigned short &sourcePort) {
+    sockaddr_in clntAddr;
+    socklen_t addrLen = sizeof(clntAddr);
+    int rtn;
+    if ((rtn = recvfrom(sock,  buffer, bufferLen, 0,(sockaddr *) &clntAddr, (socklen_t *) &addrLen)) < 0) {
+        ERROR("RECEIVED UDP ERROW")
+    }
+
+    sourceAddress = inet_ntoa(clntAddr.sin_addr);
+    sourcePort = ntohs(clntAddr.sin_port);
+
+
+    return rtn;
+}

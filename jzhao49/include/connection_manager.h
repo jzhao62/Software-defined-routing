@@ -9,7 +9,9 @@
 #include <vector>
 
 extern int control_socket, router_socket, data_socket;
-extern vector<pair<uint16_t, uint16_t >> immediate_neighbors;
+extern vector<pair<uint16_t, uint32_t >> immediate_neighbors;
+
+extern UDPSocket *router_sock;
 
 
 

@@ -18,10 +18,8 @@
 #include <iostream>
 #include <map>
 #include <climits>
-#include "PracticalSocket.h"
 
 
-const int MAXRCVSTRING = 4096; // Longest string to receive
 
 
 using namespace std;
@@ -31,12 +29,13 @@ map<uint16_t , Router > neighbors;
 Router self;
 vector<vector<int>> DV;
 
-vector<pair<uint16_t, uint16_t >> immediate_neighbors;
+vector<pair<uint16_t, uint32_t >> immediate_neighbors;
 
 
+ uint16_t my_router_port;
 
 
-
+UDPSocket *router_sock;
 
 
 uint16_t next_hopper;
@@ -365,10 +364,11 @@ void initialize(int sock_index, char* payload){
             self.route_port = curr_router_port;
             self.ip = curr_router_ip;
             self.c = 0;
+            my_router_port = curr_router_port;
             continue;
         }
 
-        immediate_neighbors.push_back({curr_router_ip, curr_router_port});
+        immediate_neighbors.push_back({curr_router_port,curr_router_ip});
 
 
         /* init timeout list */
@@ -398,13 +398,6 @@ void initialize(int sock_index, char* payload){
     display_routing_table(DV);
 
 
-
-
-
-
-
-
-
     char *ctrl_response_header, *ctrl_response_payload, *ctrl_response;
 
     int response_len;
@@ -421,56 +414,35 @@ void initialize(int sock_index, char* payload){
     sendALL(sock_index, ctrl_response, response_len);
 
 
-//     open socket to hear from other routers
     router_socket = create_route_sock(self.route_port);
-    data_socket = create_data_sock(self.data_port);
+
+    cout << "created " << router_socket << endl;
+    FD_SET(router_socket, &master_list);
+    if(router_socket > head_fd) head_fd = router_socket;
+
+
+
+//    data_socket = create_data_sock(self.data_port);
+
+
+
+
+//    UDPSocket sock2(self.route_port);
+////    router_sock = &sock2;
 //
-//    FD_SET(router_socket, &master_list);
+//    router_socket = sock2.sockDesc;
+//
+//    cout << "created " << router_socket << endl;
+//
 //    FD_SET(router_socket, &master_list);
 //    if(router_socket > head_fd) head_fd = router_socket;
 //
-//
 
 
-
-
-//    UDPSocket sock(self.route_port);
-
-//
-//    char recvString[MAXRCVSTRING + 1]; // Buffer for echo string + \0
-//    string sourceAddress;              // Address of datagram source
-//    unsigned short sourcePort;         // Port of datagram source
-
-
-
-
-//    while(true){
-//        int bytesRcvd = sock.recvFrom(recvString, MAXRCVSTRING, sourceAddress,sourcePort);
-//        recvString[bytesRcvd] = '\0';  // Terminate string
-//        cout << "Received " << recvString << " from " << sourceAddress << ": "<< sourcePort << endl;
-//    }
-
-
-
-
-    cout << "created " << router_socket << " and " << data_socket << endl;
-
-
-
-
-    tv.tv_sec = 5;
+    tv.tv_sec = 10;
     tv.tv_usec = 500000;
-
-
-
-
-
-
-
-
-
-
-
+//
+//
     first_time = false;
 
 //    data_socket = create_data_sock(self.data_port);

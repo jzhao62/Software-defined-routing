@@ -9,8 +9,7 @@
 #include <netinet/in.h>
 #include <strings.h>
 #include <vector>
-
-
+#include <string>
 
 
 using namespace std;
@@ -30,5 +29,6 @@ void initialize_dv(vector<vector<int>> &DV, int id, int total_routers);
 
 void display_routing_table(vector<vector<int>> &DV);
 
+int udp_recvFrom(int sock, void *buffer, int bufferLen, string &sourceAddress,unsigned short &sourcePort);
 
 
