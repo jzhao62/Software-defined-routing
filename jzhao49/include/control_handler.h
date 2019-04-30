@@ -10,23 +10,21 @@
 #include <vector>
 #include <sys/time.h>
 #include <map>
+#include <control_header_lib.h>
+#include <set>
 using namespace std;
 
-struct Remote_DV {
-    uint16_t dest_id;
-    uint16_t cost;
-};
 
-struct Router {
-    uint16_t id;
-    uint16_t route_port;
-    uint16_t data_port;
-    uint16_t c;
-    uint32_t ip;
-//    uint16_t total_cost;
-//    uint16_t next_hop_id;
-    std::vector<Remote_DV> remote_dv;
-};
+extern map<uint16_t , uint16_t > DV;
+extern map<uint16_t , uint16_t > next_hops;
+
+extern map<uint16_t , router*> all_nodes;
+
+
+extern map<uint16_t , routing_packet > neighbors;
+extern uint16_t router_number;
+extern routing_packet self;
+
 
 struct Timeout {
     int router_id;
@@ -34,12 +32,6 @@ struct Timeout {
     struct timeval expired_time;
 };
 
-struct Route_Neighbor {
-    uint16_t router_id;
-    int socket;
-    uint32_t ip;
-    uint16_t port;
-};
 
 struct Transfer_File {
     uint8_t transfer_id;
@@ -47,7 +39,7 @@ struct Transfer_File {
     std::vector<uint16_t> sequence;
 };
 
-extern std::vector<Router> table;
+
 extern std::vector<Timeout> routers_timeout;
 extern std::vector<Transfer_File> transfer_files;
 
@@ -82,5 +74,15 @@ void author(int sock_index);
 
 void initialize(int sock_index, char* payload);
 
+void routing(int sock_index);
 
-void udp_broad_cast_hello(uint16_t local_port , map<uint16_t , Router > &neighbors);
+
+
+
+void udp_broad_cast_hello(uint16_t local_port , map<uint16_t , routing_packet > &neighbors);
+
+
+void update(int sock_index, char* payload);
+
+
+void sendfile(int sock_index, char* cntrl_payload);

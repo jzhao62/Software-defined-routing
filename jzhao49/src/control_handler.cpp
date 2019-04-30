@@ -25,11 +25,25 @@
 using namespace std;
 
 vector<int> control_conn_list;
-map<uint16_t , Router > neighbors;
-Router self;
-vector<vector<int>> DV;
+map<uint16_t , routing_packet > neighbors;
+
+
+routing_packet self;
+
+map<uint16_t , uint16_t > DV;
+
+
+// key : destination, val : next_hop starting from current node
+map<uint16_t , uint16_t > next_hops;
+
+map<uint16_t , router*> all_nodes;
+
 
 vector<pair<uint16_t, uint32_t >> immediate_neighbors;
+
+
+uint16_t router_number;
+
 
 
  uint16_t my_router_port;
@@ -38,10 +52,11 @@ vector<pair<uint16_t, uint32_t >> immediate_neighbors;
 UDPSocket *router_sock;
 
 
-uint16_t next_hopper;
 
 
 int router_socket;
+uint16_t time_period;
+
 
 
 
@@ -209,13 +224,16 @@ bool control_recv_hook(int sock_index) {
             initialize(sock_index, cntrl_payload);
             break;
         case ROUTING_TABLE:
-
+            routing(sock_index);
             break;
         case UPDATE:
+            update(sock_index, cntrl_payload);
+
             break;
         case CRASH:
             break;
         case SENDFILE:
+            sendfile(sock_index, cntrl_payload);
             break;
         case SENDFILE_STATS:
             break;
@@ -287,8 +305,7 @@ The router, after receiving this message, should start broadcasting the routing 
 void initialize(int sock_index, char* payload){
 
 
-    struct Router r;
-    uint16_t router_number;
+    struct routing_packet r;
     uint16_t time_interval;
     uint16_t curr_router_id;
     uint16_t curr_router_port;
@@ -317,10 +334,16 @@ void initialize(int sock_index, char* payload){
     struct timeval tmp_tv;
     gettimeofday(&tmp_tv, NULL);
 
+
+    time_period = time_interval;
+
+
     for (int i = 0; i < router_number; i++) {
 
         memcpy(&curr_router_id, payload + overhead, sizeof(curr_router_id));
         curr_router_id = ntohs(curr_router_id);
+
+
         overhead += 2;
 
         memcpy(&curr_router_port, payload + overhead, sizeof(curr_router_port));
@@ -334,6 +357,7 @@ void initialize(int sock_index, char* payload){
         memcpy(&curr_cost, payload + overhead, sizeof(curr_cost));
         curr_cost = ntohs(curr_cost);
 
+
         overhead += 2;
 
         memcpy(&curr_router_ip, payload + overhead, sizeof(curr_router_ip));
@@ -345,10 +369,10 @@ void initialize(int sock_index, char* payload){
         overhead += 4;
 
 
-        r.id = curr_router_id;
-        r.route_port = curr_router_port;
+        r.router_id = curr_router_id;
+        r.router_port = curr_router_port;
         r.data_port = curr_data_port;
-        r.c = curr_cost;
+        r.cost_from_source = curr_cost;
         r.ip = curr_router_ip;
 
 
@@ -356,17 +380,20 @@ void initialize(int sock_index, char* payload){
 
         neighbors[curr_router_id] = r;
 
+        all_nodes[curr_router_id] = new router(r.router_id,r.ip, r.router_port, r.data_port, 1);
+
 
 
         if(curr_cost == 0){
-            self.id = curr_router_id;
+            self.router_id= curr_router_id;
             self.data_port = curr_data_port;
-            self.route_port = curr_router_port;
+            self.router_port = curr_router_port;
             self.ip = curr_router_ip;
-            self.c = 0;
+            self.cost_from_source = 0;
             my_router_port = curr_router_port;
             continue;
         }
+
 
         immediate_neighbors.push_back({curr_router_port,curr_router_ip});
 
@@ -374,28 +401,26 @@ void initialize(int sock_index, char* payload){
         /* init timeout list */
 
     }
-//    /* after init, we can set waiting time for select(), at first, wait T and send dv */
+
+
+    initialize_dv(DV, next_hops, int(self.router_id), int(router_number));
 
 
 
-    initialize_dv(DV, int(self.id), int(router_number));
-
-
-
-    vector<vector<int>> *tmp_dv = &DV;
+    map<uint16_t ,uint16_t > *tmp_dv = &DV;
 
 
     for(auto n : neighbors){
 
         int id = int(n.first);
-        int cost = int(n.second.c);
+        int cost = int(n.second.cost_from_source);
+        next_hops[id] = id;
 
-        DV[id-1][id-1] = cost;
-
+        DV[id] = cost;
     }
 
 
-    display_routing_table(DV);
+    display_DV(DV, next_hops);
 
 
     char *ctrl_response_header, *ctrl_response_payload, *ctrl_response;
@@ -414,45 +439,29 @@ void initialize(int sock_index, char* payload){
     sendALL(sock_index, ctrl_response, response_len);
 
 
-    router_socket = create_route_sock(self.route_port);
+    router_socket = create_route_sock(self.router_port);
 
-    cout << "created " << router_socket << endl;
     FD_SET(router_socket, &master_list);
     if(router_socket > head_fd) head_fd = router_socket;
 
+    data_socket = create_data_sock(self.data_port);
+
+    FD_SET(data_socket, &master_list);
+    if(data_socket > head_fd) head_fd = data_socket;
 
 
-//    data_socket = create_data_sock(self.data_port);
 
 
 
+    gettimeofday(&next_send_time, NULL);
+    next_send_time.tv_sec += time_period;
 
-//    UDPSocket sock2(self.route_port);
-////    router_sock = &sock2;
-//
-//    router_socket = sock2.sockDesc;
-//
-//    cout << "created " << router_socket << endl;
-//
-//    FD_SET(router_socket, &master_list);
-//    if(router_socket > head_fd) head_fd = router_socket;
-//
+    tv.tv_sec = time_period;
+    tv.tv_usec = 0;
 
-
-    tv.tv_sec = 10;
-    tv.tv_usec = 500000;
-//
-//
     first_time = false;
 
-//    data_socket = create_data_sock(self.data_port);
 
-
-//    FD_SET(data_socket, &master_list);
-
-//    /* response to controller */
-
-//    /* create router listening socket and data listening socket */
 }
 
 /**
@@ -460,10 +469,184 @@ void initialize(int sock_index, char* payload){
  * The table sent as a response should contain an entry for each router in the network (including self) consisting of the next hop router ID (on the least cost path to that router) and the cost of the path to it.
  */
 
-void request_routing_table(int sock_index){
+
+void routing(int sock_index){
+    uint16_t payload_len;
+    uint16_t response_len;
+    char *ctrl_response_header;
+    char *ctrl_response_payload;
+    char *ctrl_response;
+
+    payload_len = create_ROUTING_reponse_payload(ctrl_response_payload, DV,next_hops);
+
+
+    ctrl_response_header = create_response_header(sock_index, 0, 0x02, payload_len);
+
+
+
+    response_len = CONTROL_HEADER_SIZE + payload_len;
+
+
+    ctrl_response = (char *) malloc(response_len);
+    /* Copy Header */
+    memcpy(ctrl_response, ctrl_response_header, CONTROL_HEADER_SIZE);
+    /* Copy Payload */
+    memcpy(ctrl_response + CONTROL_HEADER_SIZE, ctrl_response_payload, payload_len);
+
+
+    int ret = sendALL(sock_index, ctrl_response, response_len);
+
+
+    if(ret == -1) ERROR("FAILED to send routing response")
+
+}
+
+
+
+void update(int sock_index, char* payload){
+
+    uint16_t target_id;
+    uint16_t cost;
+
+
+    unsigned int byte = 0;
+
+    memcpy(&target_id, payload + byte, sizeof(target_id));  byte+=2;
+    memcpy(&cost, payload + byte, sizeof(cost)); byte +=2;
+
+    target_id = ntohs(target_id);
+    cost = ntohs(cost);
+
+
+    cout << " update toward " << ntohs(target_id) << " with cost " << ntohs(cost) << endl;
+
+
+    // reinitliaze local routerr
+
+    neighbors[target_id].cost_from_source = cost;
+
+
+    initialize_dv(DV, next_hops, int(self.router_id), int(router_number));
+
+
+
+    map<uint16_t ,uint16_t > *tmp_dv = &DV;
+
+
+    for(auto n : neighbors){
+
+        int id = int(n.first);
+        int cost = int(n.second.cost_from_source);
+        next_hops[id] = id;
+
+        DV[id] = cost;
+    }
+
+
+    display_DV(DV, next_hops);
+
+
+
+
+
+
+
+
+
+
+
+    char* ctrl_response_header;
+    uint16_t payload_len= 0;
+    ctrl_response_header = create_response_header(sock_index, 0, 0x03, payload_len);
+
+
+    int ret = sendALL(sock_index, ctrl_response_header, 8);
+
 
 
 
 }
 
+
+
+void crash(int sock_index){
+
+    for(auto a : neighbors){
+        a.second.cost_from_source = INF;
+    }
+
+
+    initialize_dv(DV, next_hops, int(self.router_id), int(router_number));
+
+    map<uint16_t ,uint16_t > *tmp_dv = &DV;
+
+
+    for(auto n : neighbors){
+
+        int id = int(n.first);
+        int cost = int(n.second.cost_from_source);
+        next_hops[id] = id;
+
+        DV[id] = cost;
+    }
+
+
+    display_DV(DV, next_hops);
+
+
+
+
+
+
+
+
+}
+
+
+void sendfile(int sock_index, char* cntrl_payload){
+    uint32_t destination_ip;
+    uint8_t init_TTL;
+    uint8_t transfer_id;
+    uint16_t init_sequence_number;
+
+
+
+
+    int byte = 0;
+
+    memcpy(&destination_ip, cntrl_payload + byte, sizeof(destination_ip)); byte += 4;
+    memcpy(&init_TTL, cntrl_payload + byte, sizeof(init_TTL)); byte += 1;
+    memcpy(&transfer_id, cntrl_payload + byte, sizeof(transfer_id)); byte += 1;
+    memcpy(&init_sequence_number, cntrl_payload + byte, sizeof(init_sequence_number)); byte += 2;
+
+
+    destination_ip = ntohl(destination_ip);
+    init_sequence_number = ntohs(init_sequence_number);
+
+    cout << destination_ip << " " << init_TTL << " " << transfer_id << " " << init_sequence_number << endl;
+
+    char* p = cntrl_payload + byte;
+
+
+    cout << " file name  " << p << endl;
+
+
+
+
+
+
+
+
+
+
+
+    char* ctrl_response_header;
+    uint16_t payload_len= 0;
+    ctrl_response_header = create_response_header(sock_index, 0, 0x05, payload_len);
+
+
+    int ret = sendALL(sock_index, ctrl_response_header, 8);
+
+
+}
 
