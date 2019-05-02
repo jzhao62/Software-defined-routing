@@ -363,8 +363,6 @@ void initialize(int sock_index, char* payload){
         memcpy(&curr_router_ip, payload + overhead, sizeof(curr_router_ip));
         curr_router_ip = ntohl(curr_router_ip);
 
-        cout << curr_router_ip << endl;
-
 
         overhead += 4;
 
@@ -391,6 +389,12 @@ void initialize(int sock_index, char* payload){
             self.ip = curr_router_ip;
             self.cost_from_source = 0;
             my_router_port = curr_router_port;
+
+
+            string x = print_ip(self.ip);
+
+            cout << x << endl;
+
             continue;
         }
 
@@ -608,7 +612,13 @@ void sendfile(int sock_index, char* cntrl_payload){
     uint8_t init_TTL;
     uint8_t transfer_id;
     uint16_t init_sequence_number;
+    uint32_t fin_seq = 0;
+    char* payload = "";
 
+
+    char cnt_p [100] = "";
+
+    memcpy(cnt_p, cntrl_payload, 100);
 
 
 
@@ -623,12 +633,45 @@ void sendfile(int sock_index, char* cntrl_payload){
     destination_ip = ntohl(destination_ip);
     init_sequence_number = ntohs(init_sequence_number);
 
-    cout << destination_ip << " " << init_TTL << " " << transfer_id << " " << init_sequence_number << endl;
 
-    char* p = cntrl_payload + byte;
+    char p2[12 + 1024] = "";
 
 
-    cout << " file name  " << p << endl;
+    memcpy(p2, cntrl_payload+byte, 12 + 1024);
+
+
+    cout << p2 << endl;
+
+
+
+    printf("start routing\n");
+
+    vector<pair<char*, int>> tcp_packets = load_file_contents(p2);
+
+
+    for(auto a : tcp_packets){
+
+        cout << a.second << endl;
+
+        char* pkt = (char *) malloc(sizeof(char) * (12 + a.second));
+
+
+        int bytes = create_tcp_pkt(pkt,destination_ip, transfer_id,  init_TTL, init_sequence_number, fin_seq, a.first);
+
+        cout << "loaded " << bytes << endl;
+
+
+
+        route_to_next_hop(pkt, next_hops,all_nodes);
+
+
+    }
+
+
+
+
+
+
 
 
 

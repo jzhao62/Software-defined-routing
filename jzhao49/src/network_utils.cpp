@@ -21,7 +21,7 @@
 #include <arpa/inet.h>
 #include <iostream>
 #include <netdb.h>
-
+#include "fstream"
 
 using namespace std;
 
@@ -125,14 +125,12 @@ struct timeval diff_tv(struct timeval tv1, struct timeval tv2) {
 
 string print_ip(unsigned int ip)
 {
-    cout << ip << endl;
-
     unsigned char bytes[4];
     bytes[0] = ip & 0xFF;
     bytes[1] = (ip >> 8) & 0xFF;
     bytes[2] = (ip >> 16) & 0xFF;
     bytes[3] = (ip >> 24) & 0xFF;
-    printf("%d.%d.%d.%d\n", bytes[3], bytes[2], bytes[1], bytes[0]);
+//    printf("%d.%d.%d.%d\n", bytes[3], bytes[2], bytes[1], bytes[0]);
 
 
     int v1 = (int) bytes[3];
@@ -168,7 +166,7 @@ void update_dv(map<uint16_t ,uint16_t > &DV,map<uint16_t ,uint16_t > &next_hops,
     uint16_t cost_to_source = DV[source_id];
 
 
-    cout << "cost to " << source_id << " is " << cost_to_source << endl;
+//    cout << "cost to " << source_id << " is " << cost_to_source << endl;
 
     for(auto &itr : DV){
 
@@ -178,7 +176,7 @@ void update_dv(map<uint16_t ,uint16_t > &DV,map<uint16_t ,uint16_t > &next_hops,
         if(destination == source_id) continue;
 
         itr.second = cost_to_source + received_dv[destination];
-        cout << "updated to " << "[" << itr.first << "]" << " cost " << cost_to_source << " + " << received_dv[destination] << endl;
+//        cout << "updated to " << "[" << itr.first << "]" << " cost " << cost_to_source << " + " << received_dv[destination] << endl;
         next_hops[destination] = source_id;
 
 
@@ -273,26 +271,49 @@ void tcp_send_hello(uint16_t local_port, uint32_t destination_ip , uint16_t dest
 // modify ttl and send pkt to the next hop according to destination
 void route_to_next_hop(char *tcp_pkt, map<uint16_t, uint16_t> &next_hops, map<uint16_t , router*> &all_nodes){
 
-    char* new_pkt;
-
-    uint32_t ip;
-    uint16_t port;
-
-    int bytes = modify_tcp_pkt(new_pkt, tcp_pkt, port, ip);
-
-    for(auto n : all_nodes){
-        if(n.second->ip == ip && n.second->data_port == port){
-
-            TCPSocket sock;
-
-            sock.send(new_pkt, bytes);
+    char* new_pkt = (char *) malloc(sizeof(char) * (1024 + 12));
 
 
+    uint32_t destination_ip;
+
+    int destination_id = 0;
+    int next_hop_id = 0;
+    uint32_t next_hop_ip = 0;
+    uint16_t next_hop_data_port = 0;
+
+    int bytes = modify_tcp_pkt(new_pkt, tcp_pkt, destination_ip);
+
+
+    cout << bytes << " bytes: Modified pkt " << endl;
+
+
+
+    for(auto a : all_nodes){
+        if(a.second->ip == destination_ip) {
+            destination_id = a.first;
+            break;
         }
 
-
-
     }
+
+
+
+
+    next_hop_id = next_hops[destination_id];
+
+    next_hop_ip = all_nodes[next_hop_id]->ip;
+    next_hop_data_port = all_nodes[next_hop_id]->data_port;
+
+
+
+    string v = print_ip(next_hop_ip);
+    const char *cstr = v.c_str();
+
+
+    printf("sending pkt to %d\n" , cstr);
+    tcp_send_pkt_to_neighbor(cstr, next_hop_data_port, new_pkt, bytes);
+    printf("pkt sent \n");
+
 
 
 
@@ -303,10 +324,9 @@ void route_to_next_hop(char *tcp_pkt, map<uint16_t, uint16_t> &next_hops, map<ui
 
 
 
-int listen_on_tcp_server(int sockfd){
+void listen_on_tcp_server(char buffer [], int sockfd){
     int newsockfd;
     socklen_t clilen;
-    char buffer[1025];
     struct sockaddr_in cli_addr;
     int n;
 
@@ -328,43 +348,30 @@ int listen_on_tcp_server(int sockfd){
 
 
 
-    bzero(buffer,1025);
+    bzero(buffer,12 + 1025);
 
-    n = read(newsockfd,buffer,1025);
-
-
+    n = read(newsockfd,buffer,12 + 1025);
 
 
-    if(n != 0){
 
-
-            string tmp = buffer;
-            tmp = tmp.substr(0,1024);
-            cout << "received tcp msgs" << endl;
-
-
-            ret += tmp;
-            cout << ret << endl;
-    }
-
+    printf("read %d bytes \n" , n);
 
 
     if (n < 0) ERROR("ERROR reading from socket");
 
 
     close(newsockfd);
-    return 0;
 
 }
 
 
-void tcp_send_hello_to_neighbor(const char* server_ip, int portno){
+void tcp_send_pkt_to_neighbor(const char *server_ip, int portno, char *buff, int byte){
 
     int sockfd, n;
     struct sockaddr_in serv_addr;
     struct hostent *server;
 
-    char buffer[1024];
+    char buffer[1036];
 
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -379,20 +386,15 @@ void tcp_send_hello_to_neighbor(const char* server_ip, int portno){
     bcopy((char *)server->h_addr,(char *)&serv_addr.sin_addr.s_addr,server->h_length);
     serv_addr.sin_port = htons(portno);
 
-    bzero(buffer,1024);
+    bzero(buffer,1036);
 
 
     if (connect(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)ERROR("ERROR connecting");
 
+    memcpy(buffer, buff, byte);
 
-    char* sendstring = "GGWP";
+    n = write(sockfd, buffer, byte);
 
-    memcpy(buffer, sendstring, strlen(sendstring));
-
-
-    n = write(sockfd, buffer, strlen(sendstring));
-
-    cout << "sending out GGWP" << endl;
     if (n < 0) ERROR("ERROR writing to socket");
 
 
@@ -401,8 +403,55 @@ void tcp_send_hello_to_neighbor(const char* server_ip, int portno){
 
 }
 
+std::ifstream::pos_type file_len(const char* filename)
+{
+    std::ifstream in(filename, std::ifstream::ate | std::ifstream::binary);
+    return in.tellg();
+}
+
+vector<pair<char*, int>> load_file_contents(const char* filename){
+
+    vector<pair<char*, int>> ret;
 
 
+
+
+    FILE* filehandle = fopen(filename,"r");
+
+    unsigned int filesize = file_len(filename);
+
+
+    int byte = 0;
+
+    char *chunck;
+
+
+    for(byte = 0; byte <= filesize ; byte += 1024){
+
+        if(byte + 1024 >= filesize){
+            int new_size = filesize - byte;
+            chunck = (char*)malloc(sizeof(char)*(new_size));
+            int bytesread = fread(chunck, sizeof(char), new_size, filehandle);
+            ret.push_back({chunck, bytesread});
+            break;
+        }
+
+        chunck = (char*)malloc(sizeof(char)*1024);
+        int bytesread = fread(chunck, sizeof(char), 1024, filehandle + byte);
+
+        ret.push_back({chunck, bytesread});
+
+
+
+    }
+
+    return ret;
+
+//    rewind(filehandle);
+
+
+
+}
 
 
 

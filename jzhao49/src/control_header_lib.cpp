@@ -94,43 +94,13 @@ return byte;
 }
 
 
-int create_tcp_pkt(char* new_pkt, uint32_t destination_ip, uint8_t transfer_id, uint8_t ttl, uint16_t seq_number, uint16_t destination_data_port, uint16_t padding, uint32_t fin_seq, char* payload){
-    int byte = 0;
-
-    destination_ip = htonl(destination_ip);
-    seq_number = htons(seq_number);
-    destination_data_port = htons(destination_data_port);
-
-    padding = htons(padding);
-    fin_seq = htonl(fin_seq);
-
-
-
-
-
-    memcpy(new_pkt + byte, &destination_ip, sizeof(destination_ip)); byte += 4;
-    memcpy(new_pkt + byte, &transfer_id, sizeof(uint8_t)); byte += 1;
-    memcpy(new_pkt + byte, &ttl, sizeof(uint8_t)); byte += 1;
-    memcpy(new_pkt + byte, &seq_number, sizeof(uint16_t)); byte += 2;
-    memcpy(new_pkt + byte, &destination_data_port, sizeof(uint16_t)); byte +=2;
-    memcpy(new_pkt + byte, &padding, sizeof(uint16_t)); byte += 2;
-
-
-    memcpy(new_pkt + byte, &fin_seq, sizeof(uint32_t)); byte += 4;
-    memcpy(new_pkt + byte, &payload, strlen(payload)); byte += strlen(payload);
-
-
-
-
-    return byte;
-}
 
 
 
 void extract_routing_packet(uint16_t &number, uint16_t &source_port, uint32_t &source_ip, uint16_t &source_id, vector<routing_packet*> &distant_payload, char* payload){
 
 
-    cout << "---------------Extracting packet " << endl;
+//    cout << "---------------Extracting packet " << endl;
 
 
 
@@ -171,7 +141,7 @@ void extract_routing_packet(uint16_t &number, uint16_t &source_port, uint32_t &s
 
     }
 
-    cout << "---------------Packet extraced from  " << source_id << endl;
+//    cout << "---------------Packet extraced from  " << source_id << endl;
 
 
 
@@ -181,20 +151,48 @@ void extract_routing_packet(uint16_t &number, uint16_t &source_port, uint32_t &s
 
 
 
-// TODO : erase data port and padding when handing in
-int modify_tcp_pkt(char* new_pkt, char* pkt, uint16_t &port, uint32_t &ip){
+int create_tcp_pkt(char* new_pkt, uint32_t destination_ip, uint8_t transfer_id, uint8_t ttl, uint16_t seq_number, uint32_t fin_seq, char* payload){
+
+
+    bzero(new_pkt, sizeof(new_pkt));
+
+    int byte = 0;
+
+    destination_ip = htonl(destination_ip);
+    seq_number = htons(seq_number);
+
+
+    fin_seq = htonl(fin_seq);
+
+
+
+    memcpy(new_pkt + byte, &destination_ip, sizeof(destination_ip)); byte += 4;
+    memcpy(new_pkt + byte, &transfer_id, sizeof(uint8_t)); byte += 1;
+    memcpy(new_pkt + byte, &ttl, sizeof(uint8_t)); byte += 1;
+    memcpy(new_pkt + byte, &seq_number, sizeof(uint16_t)); byte += 2;
+    memcpy(new_pkt + byte, &fin_seq, sizeof(uint32_t)); byte += 4;
+    memcpy(new_pkt + byte, payload, strlen(payload)); byte += strlen(payload);
+
+
+
+
+    return byte;
+}
+
+
+
+int modify_tcp_pkt(char* new_pkt, char* pkt, uint32_t &ip){
+
+
+    bzero(new_pkt, sizeof(new_pkt));
+
     uint32_t destination_ip;
     uint8_t transfer_id;
     uint8_t ttl;
     uint16_t seq_number;
 
-    uint16_t destination_data_port;
-    uint16_t padding;
-
-
 
     uint32_t fin_seq;
-    char* payload;
 
 
     int byte = 0;
@@ -203,9 +201,7 @@ int modify_tcp_pkt(char* new_pkt, char* pkt, uint16_t &port, uint32_t &ip){
 
     destination_ip = ntohl(destination_ip);
 
-
     ip = destination_ip;
-
 
     memcpy(&transfer_id, pkt + byte, sizeof(uint8_t)); byte += 1;
 
@@ -218,25 +214,21 @@ int modify_tcp_pkt(char* new_pkt, char* pkt, uint16_t &port, uint32_t &ip){
     seq_number = ntohs(seq_number);
 
 
-    memcpy(&destination_data_port, pkt + byte, sizeof(uint16_t)); byte += 2;
-
-    destination_data_port = ntohs(destination_data_port);
-
-    port = destination_data_port;
-
-    memcpy(&padding, pkt + byte, sizeof(uint16_t)); byte += 2;
-
 
     memcpy(&fin_seq, pkt + byte, sizeof(uint32_t)); byte += 4;
 
     fin_seq = ntohl(fin_seq);
 
-    payload =pkt + byte;
+
+    char* payload = (char*) malloc(1024);
+
+    memcpy(payload, pkt+byte, sizeof(char) * 1024);
 
 
 
 
-    byte = create_tcp_pkt(new_pkt, destination_ip, transfer_id, ttl,  seq_number, destination_data_port, padding,  fin_seq,  payload);
+
+    byte = create_tcp_pkt(new_pkt, destination_ip, transfer_id, ttl,  seq_number, fin_seq,  payload);
 
 
 
@@ -246,3 +238,5 @@ int modify_tcp_pkt(char* new_pkt, char* pkt, uint16_t &port, uint32_t &ip){
 
 
 }
+
+

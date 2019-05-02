@@ -71,7 +71,7 @@ void udp_broad_cast_DV(uint16_t local_port , uint16_t total_numbers, map<uint16_
     int bytes = create_routing_packet(buff, router_number, local_port, self.ip, tmp);
 
 
-    cout << "sending out " << bytes << endl;
+//    cout << "sending out " << bytes << endl;
 
 
 
@@ -134,15 +134,9 @@ void main_loop() {
         watch_list = master_list;
         if (first_time) {
             selret = select(head_fd + 1, &watch_list, NULL, NULL, NULL);
-
         }
         else {
-
-
-
-
             selret = select(head_fd + 1, &watch_list, NULL, NULL, &tv);
-
         }
 
 
@@ -162,21 +156,7 @@ void main_loop() {
 
                 next_send_time.tv_sec = curr_time.tv_sec + time_period;
 
-//                udp_broad_cast_hello(my_router_port, immediate_neighbors);
                 udp_broad_cast_DV(self.router_port,router_number, DV,neighbors);
-
-                for(auto a : neighbors){
-
-                    uint32_t ip = a.second.ip;
-                    uint16_t data_port = a.second.data_port;
-                    string v = print_ip(ip);
-                    const char *cstr = v.c_str();
-
-                    tcp_send_hello_to_neighbor(cstr, data_port);
-
-                }
-
-                cout << endl;
 
                 tv = diff_tv(next_send_time, curr_time);
             }
@@ -211,7 +191,8 @@ void main_loop() {
 
                     for(auto a : next_expected_time){
                         if(a.second < curr_time.tv_sec){
-                            cout << a.first << " is CRASHED !!!" << endl;
+//                            cout << a.first << " is CRASHED !!!" << endl;
+                            printf("%d is crashed ", a.first);
                         }
 
 
@@ -234,7 +215,7 @@ void main_loop() {
                         int bytesRcvd = udp_recvFrom(sock_index,recvString, MAXRCVSTRING, sourceAddress,sourcePort);
 
 
-                        cout << "---> received bytes: " << bytesRcvd << endl;
+//                        cout << "---> received bytes: " << bytesRcvd << endl;
 
 
                         char*buf = recvString;
@@ -245,7 +226,7 @@ void main_loop() {
                     gettimeofday(&curr_time, NULL);
 
 
-                    cout << "***************received routing packet from  " << source_id << " at " << curr_time.tv_sec  <<  endl;
+//                    cout << "***************received routing packet from  " << source_id << " at " << curr_time.tv_sec  <<  endl;
 
                     next_expected_time[source_id] = curr_time.tv_sec + 3 * time_period;
 
@@ -256,7 +237,7 @@ void main_loop() {
 
                     update_dv(DV, next_hops, all_nodes, source_id, distant_payload);
 
-                    display_DV(DV, next_hops);
+//                    display_DV(DV, next_hops);
 //
 //                    display_all_nodes(all_nodes);
 
@@ -267,9 +248,47 @@ void main_loop() {
 
                     /* data_socket */
                 else if (sock_index == data_socket) {// TCP, need to create link
-                    cout << "curr sock is data socket " << sock_index << endl;
 
-                    listen_on_tcp_server(sock_index);
+
+                    printf("Received TCP connection \n ");
+
+
+                    int len = 12 + 1025;
+
+
+                    char buffer[len];
+
+                    listen_on_tcp_server(buffer, sock_index);
+
+                    //extract IP, port
+
+                    uint32_t destination_ip;
+
+
+                    memcpy(&destination_ip, buffer, sizeof(uint32_t));
+
+                    if(self.ip == ntohl(destination_ip)){
+                        char * recv = (char*) malloc(1024);
+
+                        memcpy(recv, buffer + 12, sizeof(char) * 1024);
+
+                        cout << "RECEIVED " << endl;
+
+                        cout << recv << endl;
+
+                    }
+
+                    else{
+                        route_to_next_hop(buffer,next_hops,all_nodes);
+                    }
+
+
+
+
+
+
+                    // route to next hop towards destination
+
 
 
                 }

@@ -25,8 +25,6 @@ struct timeval add_tv(struct timeval tv1, struct timeval tv2);
 ssize_t send_udp(int sock_index, char *buffer, ssize_t nbytes, uint32_t ip, uint16_t port);
 
 
-string GetIPString(uint32_t x);
-
 int udp_recvFrom(int sock, void *buffer, int bufferLen, string &sourceAddress,unsigned short &sourcePort);
 
 
@@ -47,6 +45,10 @@ string print_ip(unsigned int ip);
 void udp_broad_cast_hello(uint16_t local_port , vector<pair<uint16_t, uint32_t >> &neighbors);
 
 
-void tcp_send_hello_to_neighbor(const char* server_ip, int portno);
+void tcp_send_pkt_to_neighbor(const char *server_ip, int portno, char *buff, int bytes);
 
-int listen_on_tcp_server(int sock_fd);
+void listen_on_tcp_server(char buffer [], int sock_fd);
+
+
+
+vector<pair<char*, int>> load_file_contents(const char* filename);
