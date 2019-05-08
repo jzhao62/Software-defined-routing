@@ -1,6 +1,4 @@
-//
-// Created by bilin on 11/29/18.
-//
+
 
 #ifndef PROJECT_GLOBAL_H
 #define PROJECT_GLOBAL_H
@@ -9,7 +7,6 @@
 #include <stdlib.h>
 #include <inttypes.h>
 
-//typedef enum {FALSE, TRUE} bool;
 
 #define ERROR(err_msg) {perror(err_msg); exit(EXIT_FAILURE);}
 
@@ -24,5 +21,7 @@
 #define PENULTIMATE_DATA_PACKET 0x08
 
 #define INF 65535
+
+#define LARGE 65542
 
 #endif //PROJECT_GLOBAL_H

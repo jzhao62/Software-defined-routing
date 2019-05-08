@@ -32,6 +32,7 @@ map <uint16_t, __time_t > next_expected_time;
 
 
 bool first_time;
+bool crashed;
 fd_set master_list;
 fd_set watch_list;
 int head_fd;
@@ -76,6 +77,9 @@ void udp_broad_cast_DV(uint16_t local_port , uint16_t total_numbers, map<uint16_
 
 
     for (auto a : neighbors) {
+
+        if(a.first == self.router_id) continue;
+
 
         string destAddress = to_string(a.second.ip);             // First arg:  destination address
 
@@ -130,6 +134,7 @@ void main_loop() {
 
 
     while (true) {
+        if(crashed == true) break;
 
         watch_list = master_list;
         if (first_time) {
@@ -191,8 +196,9 @@ void main_loop() {
 
                     for(auto a : next_expected_time){
                         if(a.second < curr_time.tv_sec){
-//                            cout << a.first << " is CRASHED !!!" << endl;
-                            printf("%d is crashed ", a.first);
+                            printf("%d is crashed \n", a.first);
+                            next_expected_time.erase(a.first);
+                            post_crash(DV,next_hops,all_nodes,self.router_id,a.first,neighbors);
                         }
 
 
@@ -228,18 +234,22 @@ void main_loop() {
 
 //                    cout << "***************received routing packet from  " << source_id << " at " << curr_time.tv_sec  <<  endl;
 
-                    next_expected_time[source_id] = curr_time.tv_sec + 3 * time_period;
+
+                    if(source_id != self.router_id)next_expected_time[source_id] = curr_time.tv_sec + 3 * time_period;
 
 
 
 
                     if(source_port == self.router_port) continue;
 
-                    update_dv(DV, next_hops, all_nodes, source_id, distant_payload);
+                    update_dv(DV, next_hops, all_nodes, self.router_id, source_id, distant_payload);
 
-//                    display_DV(DV, next_hops);
-//
-//                    display_all_nodes(all_nodes);
+
+                    cout << " After feedback from " << source_id << endl;
+
+                    display_DV(DV, next_hops);
+
+                    display_all_nodes(all_nodes);
 
 
 

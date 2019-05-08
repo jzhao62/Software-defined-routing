@@ -231,6 +231,7 @@ bool control_recv_hook(int sock_index) {
 
             break;
         case CRASH:
+            crash(sock_index);
             break;
         case SENDFILE:
             sendfile(sock_index, cntrl_payload);
@@ -597,12 +598,23 @@ void crash(int sock_index){
 
     display_DV(DV, next_hops);
 
+    char *ctrl_response_header;
+    char* ctrl_response_payload;
+    char *ctrl_response;
+
+    int response_len;
+    uint16_t payload_len = 0;
 
 
+    ctrl_response_header = create_response_header(sock_index, 0X04, 0X00, payload_len);
 
+    response_len = CONTROL_HEADER_SIZE + payload_len;
 
-
-
+    ctrl_response = (char *) malloc(response_len);
+    memcpy(ctrl_response, ctrl_response_header, CONTROL_HEADER_SIZE);
+    memcpy(ctrl_response + CONTROL_HEADER_SIZE, ctrl_response_payload, payload_len);
+    sendALL(sock_index, ctrl_response, response_len);
+    crashed = true;
 
 }
 
@@ -690,6 +702,19 @@ void sendfile(int sock_index, char* cntrl_payload){
 
     int ret = sendALL(sock_index, ctrl_response_header, 8);
 
+
+}
+
+
+void senfile_stats(){
+
+}
+
+void last_data_packet(){
+
+}
+
+void penultimate_data_packet(){
 
 }
 

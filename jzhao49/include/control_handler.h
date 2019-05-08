@@ -86,3 +86,4 @@ void update(int sock_index, char* payload);
 
 
 void sendfile(int sock_index, char* cntrl_payload);
+void crash(int sock_index);

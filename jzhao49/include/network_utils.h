@@ -30,7 +30,7 @@ int udp_recvFrom(int sock, void *buffer, int bufferLen, string &sourceAddress,un
 
 struct timeval diff_tv(struct timeval tv1, struct timeval tv2);
 
-void update_dv(map<uint16_t ,uint16_t > &DV, map<uint16_t ,uint16_t > &next_hops, map<uint16_t , router*> &all_nodes, uint16_t source_id, vector<routing_packet*> &received_pkts);
+void update_dv(map<uint16_t ,uint16_t > &DV, map<uint16_t ,uint16_t > &next_hops, map<uint16_t , router*> &all_nodes, uint16_t local_id, uint16_t source_id, vector<routing_packet*> &received_pkts);
 
 void initialize_dv(map<uint16_t , uint16_t> &DV, map<uint16_t, uint16_t > &next_hops, int id, int total_routers);
 
@@ -49,6 +49,7 @@ void tcp_send_pkt_to_neighbor(const char *server_ip, int portno, char *buff, int
 
 void listen_on_tcp_server(char buffer [], int sock_fd);
 
+void post_crash(map<uint16_t ,uint16_t > &DV,map<uint16_t ,uint16_t > &next_hops, map<uint16_t , router*> &all_nodes,int current_id, int crashed_id,map<uint16_t , routing_packet > &neighbors);
 
 
 vector<pair<char*, int>> load_file_contents(const char* filename);

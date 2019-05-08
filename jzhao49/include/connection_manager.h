@@ -32,7 +32,7 @@ extern struct timeval tv;
 extern struct timeval next_send_time;
 extern struct timeval next_event_time;
 extern bool first_time;
-
+extern bool crashed;
 
 struct __attribute__((__packed__)) Route_Content {
     uint32_t router_ip;

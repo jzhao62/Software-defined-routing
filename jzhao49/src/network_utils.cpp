@@ -60,7 +60,7 @@ void initialize_dv(map<uint16_t, uint16_t > &DV, map<uint16_t, uint16_t > &next_
             DV[i] = 0;
             next_hops[i] = i;
         }
-        else DV[i] = UINT_MAX;
+        else DV[i] = 10000;
     }
 
 }
@@ -69,17 +69,17 @@ void initialize_dv(map<uint16_t, uint16_t > &DV, map<uint16_t, uint16_t > &next_
 
 void display_DV(map<uint16_t ,uint16_t > &DV, map<uint16_t ,uint16_t > &next_hops){
 
-    cout << "=================" << endl;
+    cout << "===========================" << endl;
     for(auto a : DV){
         cout << " from current to " << a.first << " costs " << a.second << endl;
     }
-    cout << "=================" << endl;
+    cout << "-----------------" << endl;
 
-    cout << "=================" << endl;
+    cout << "-----------------" << endl;
     for(auto a : next_hops){
         cout << " from current to " << a.first << " should go from " << a.second << endl;
     }
-    cout << "=================" << endl;
+    cout << "===========================" << endl;
 
 
 }
@@ -149,13 +149,13 @@ string print_ip(unsigned int ip)
 
 
 
-void update_dv(map<uint16_t ,uint16_t > &DV,map<uint16_t ,uint16_t > &next_hops, map<uint16_t , router*> &all_nodes, uint16_t source_id, vector<routing_packet*> &received_pkts){
+void update_dv(map<uint16_t ,uint16_t > &DV,map<uint16_t ,uint16_t > &next_hops, map<uint16_t , router*> &all_nodes, uint16_t local_id, uint16_t source_id, vector<routing_packet*> &received_pkts){
+
 
     map<uint16_t ,uint16_t > received_dv;
 
     for(auto a : received_pkts){
         if(all_nodes.find(a->router_id) == all_nodes.end() && a->router_port != 0){
-            cout << a->router_id << " " << a->router_port << endl;
             all_nodes[a->router_id] = new router(a->router_id, a->ip, a->router_port, a->data_port, 1);
         }
 
@@ -163,34 +163,87 @@ void update_dv(map<uint16_t ,uint16_t > &DV,map<uint16_t ,uint16_t > &next_hops,
 
     }
 
+//    cout << "\t " << source_id << endl;
+//    for(auto a : received_dv){
+//        cout << "\t" <<"toward " << a.first << " cost " << a.second << endl;
+//    }
+
     uint16_t cost_to_source = DV[source_id];
 
 
-//    cout << "cost to " << source_id << " is " << cost_to_source << endl;
 
     for(auto &itr : DV){
 
         uint16_t destination = itr.first;
-        if(itr.second < cost_to_source + received_dv[destination]) continue;
+
+        // only works for nodes that are adjacent to the crashed node
+        if(all_nodes[destination] != NULL && all_nodes[destination]->operating == 0){
+            DV[destination] = INF;
+            next_hops[destination] = INF;
+            continue;
+        }
+
+//        if(next_hops[destination] == source_id && received_dv[destination] == INF){
+//            DV[destination] = INF;
+//            next_hops[destination] = INF;
+//            continue;
+//        }
+
+        if(received_dv[destination] == INF && source_id != local_id){
+            DV[destination] = INF;
+            next_hops[destination] = INF;
+            cout << "setting cost to" << destination << " as INF" << endl;
+            continue;
+        }
+
+
+
+
+
+        if(itr.second <= cost_to_source + received_dv[destination]) continue;
         if(cost_to_source + received_dv[destination] == 0) continue;
         if(destination == source_id) continue;
+//
+//        if(received_dv[destination] == INF) itr.second = INF;
+//        else itr.second = cost_to_source + received_dv[destination];
+//        next_hops[destination] = source_id;
 
-        itr.second = cost_to_source + received_dv[destination];
-//        cout << "updated to " << "[" << itr.first << "]" << " cost " << cost_to_source << " + " << received_dv[destination] << endl;
-        next_hops[destination] = source_id;
+        if(received_dv[destination] != INF){
+            itr.second = cost_to_source + received_dv[destination];
+            next_hops[destination] = source_id;
+        }
+
+
+
+
 
 
     }
 
 
+    for(auto &a : all_nodes){
+        if(a.second && a.second->operating == 0) next_hops[a.first] = INF;
+    }
+
+//    for(auto &dv : DV){
+//        if(dv.second == INF) next_hops[dv.first] = INF;
+//    }
+
+
+
+    cout << "local finished updating " << endl;
+
 
 }
+
+
 
 
 void display_all_nodes(map<uint16_t , router*> &all_nodes){
     cout << "=============" << endl;
     for(auto a : all_nodes){
-        cout << " " <<  a.first << " -> " << a.second->router_port << " & " << a.second->data_port << endl;
+        if(a.second == NULL) continue;
+        cout << " " <<  a.first << " operating " << a.second->operating << endl;
     }
     cout << "=============" << endl;
 
@@ -454,34 +507,55 @@ vector<pair<char*, int>> load_file_contents(const char* filename){
 }
 
 
+/**
+ *
+ * @param DV local DV (to router : cost)
+ * @param next_hops  (target : next_hop)
+ * @param all_nodes list of active nodes;
+ * @param router_id  node that is down
+ * @param total_routers
+ * @param neighbors
+ */
+
+
+void post_crash(map<uint16_t ,uint16_t > &DV,map<uint16_t ,uint16_t > &next_hops, map<uint16_t , router*> &all_nodes,int current_id, int crashed_id, map<uint16_t , routing_packet > &neighbors){
+
+
+    all_nodes[crashed_id]->operating = 0;
+
+    map<uint16_t ,uint16_t > *tmp_dv = &DV;
+
+
+    vector<routing_packet*> payloads;
+
+
+    for(auto a : all_nodes){
+        routing_packet *p = new routing_packet(0, 0,0,0,a.first, INF);
+        payloads.push_back(p);
+    }
+
+
+    DV[crashed_id] = INF;
+    next_hops[crashed_id] = INF;
+
+
+    for(auto n : next_hops){
+        if(n.second == crashed_id) {
+            DV[n.first] = INF;
+            next_hops[n.first] = INF;
+        }
+    }
 
 
 
-//void post_crash(map<uint16_t ,uint16_t > &DV,map<uint16_t ,uint16_t > &next_hops, map<uint16_t , router*> &all_nodes,int router_id, int total_routers, map<uint16_t , routing_packet > &neighbors){
-//
-//
-//
-//    map<uint16_t ,uint16_t > *tmp_dv = &DV;
-//
-//
-//    for(auto n : neighbors){
-//
-//        int id = int(n.first);
-//
-//        if(id == router_id) {
-//
-//        }
-//
-//
-//        DV[id] = cost;
-//    }
-//
-//
-//    display_DV(DV, next_hops);
-//
-//
-//
-//
-//
-//
-//}
+
+    cout << " POST CRASH " << endl;
+    display_DV(DV, next_hops);
+
+    update_dv(DV,next_hops,all_nodes, current_id, current_id, payloads);
+
+
+
+
+
+}
