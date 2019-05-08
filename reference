@@ -1,0 +1,35 @@
+./controller -t /home/jingyi/CLionProjects/cse489589_assignment3/controller/topo5 -r 1
+./controller -t /home/jingyi/CLionProjects/cse489589_assignment3/controller/topo5 -u 1 4 99
+./controller -t /home/jingyi/CLionProjects/cse489589_assignment3/controller/topo5 -c 1
+./controller -t /home/jingyi/CLionProjects/cse489589_assignment3/controller/topo5 -f 1 2 10 20 101 GGWP
+
+
+
+
+# interfaces(5) file used by ifup(8) and ifdown(8)
+auto lo
+iface lo inet loopback
+
+
+iface eth59s0 inet dhcp
+
+
+iface enp59s0 inet static
+    address 68.180.84.26/24
+
+iface enp59s0 inet static
+    address 172.16.100.17/24
+
+iface enp59s0 inet static
+    address 172.16.24.11/24
+
+iface enp59s0 inet static
+    address 192.168.1.1/24
+
+iface enp59s0 inet static
+    address 192.168.24.1/24
+
+
+
+
+sudo ifdown enp59s0 && sudo ifup enp59s0
