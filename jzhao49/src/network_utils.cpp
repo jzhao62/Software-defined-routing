@@ -48,7 +48,7 @@ ssize_t sendALL(int sock_index, char *buffer, ssize_t nbytes) {
 }
 
 
-
+map<uint16_t , uint16_t > old_dv;
 
 
 
@@ -70,16 +70,23 @@ void initialize_dv(map<uint16_t, uint16_t > &DV, map<uint16_t, uint16_t > &next_
 void display_DV(map<uint16_t ,uint16_t > &DV, map<uint16_t ,uint16_t > &next_hops){
 
     cout << "===========================" << endl;
-    for(auto a : DV){
-        cout << " from current to " << a.first << " costs " << a.second << endl;
+//    for(auto a : DV)
+
+    for(std :: map<uint16_t ,uint16_t >::iterator a = DV.begin(); a != DV.end(); a++)
+    {
+        cout << " from current to " << a->first << " costs " << a->second  << " via " << next_hops[a->first] << endl;
     }
     cout << "-----------------" << endl;
 
     cout << "-----------------" << endl;
-    for(auto a : next_hops){
-        cout << " from current to " << a.first << " should go from " << a.second << endl;
-    }
-    cout << "===========================" << endl;
+//    for(auto a : next_hops)
+
+
+//    for(std :: map<uint16_t ,uint16_t >::iterator a = next_hops.begin(); a != next_hops.end(); a++)
+//    {
+//        cout << " from current to " << a->first << " should go from " << a->second << endl;
+//    }
+//    cout << "===========================" << endl;
 
 
 }
@@ -120,9 +127,6 @@ struct timeval diff_tv(struct timeval tv1, struct timeval tv2) {
     return tv_diff;
 }
 
-
-
-
 string print_ip(unsigned int ip)
 {
     unsigned char bytes[4];
@@ -144,37 +148,37 @@ string print_ip(unsigned int ip)
     return v;
 }
 
-
-
-
-
-
 void update_dv(map<uint16_t ,uint16_t > &DV,map<uint16_t ,uint16_t > &next_hops, map<uint16_t , router*> &all_nodes, uint16_t local_id, uint16_t source_id, vector<routing_packet*> &received_pkts){
 
 
     map<uint16_t ,uint16_t > received_dv;
 
-    for(auto a : received_pkts){
-        if(all_nodes.find(a->router_id) == all_nodes.end() && a->router_port != 0){
+//    for(auto a : received_pkts)
+
+    for(routing_packet* a : received_pkts)
+
+    {
+        if(all_nodes.find(a->router_id) == all_nodes.end() || all_nodes[a->router_id]->ip == 0){
             all_nodes[a->router_id] = new router(a->router_id, a->ip, a->router_port, a->data_port, 1);
+            cout << "newly added " << a->router_id << " " << a->ip<< endl;
         }
 
         received_dv[a->router_id] = a->cost_from_source;
 
     }
 
-//    cout << "\t " << source_id << endl;
-//    for(auto a : received_dv){
-//        cout << "\t" <<"toward " << a.first << " cost " << a.second << endl;
-//    }
 
     uint16_t cost_to_source = DV[source_id];
 
 
 
-    for(auto &itr : DV){
+//    for(auto &itr : DV)
 
-        uint16_t destination = itr.first;
+    for(map<uint16_t ,uint16_t >::iterator itr = DV.begin(); itr != DV.end(); itr++)
+
+    {
+
+        uint16_t destination = itr->first;
 
         // only works for nodes that are adjacent to the crashed node
         if(all_nodes[destination] != NULL && all_nodes[destination]->operating == 0){
@@ -183,11 +187,6 @@ void update_dv(map<uint16_t ,uint16_t > &DV,map<uint16_t ,uint16_t > &next_hops,
             continue;
         }
 
-//        if(next_hops[destination] == source_id && received_dv[destination] == INF){
-//            DV[destination] = INF;
-//            next_hops[destination] = INF;
-//            continue;
-//        }
 
         if(received_dv[destination] == INF && source_id != local_id){
             DV[destination] = INF;
@@ -196,21 +195,23 @@ void update_dv(map<uint16_t ,uint16_t > &DV,map<uint16_t ,uint16_t > &next_hops,
             continue;
         }
 
+        if(old_dv.empty() == false && DV[destination] == INF && old_dv[destination] + cost_to_source == received_dv[destination]){
+            cout <<  destination << " might be unreachable " << endl;
+            continue;
+        }
 
 
 
 
-        if(itr.second <= cost_to_source + received_dv[destination]) continue;
+
+        if(itr->second <= cost_to_source + received_dv[destination] && next_hops[destination] != source_id) continue;
         if(cost_to_source + received_dv[destination] == 0) continue;
         if(destination == source_id) continue;
-//
-//        if(received_dv[destination] == INF) itr.second = INF;
-//        else itr.second = cost_to_source + received_dv[destination];
-//        next_hops[destination] = source_id;
 
-        if(received_dv[destination] != INF){
-            itr.second = cost_to_source + received_dv[destination];
-            next_hops[destination] = source_id;
+
+        if(received_dv[destination] != INF && DV[destination] > cost_to_source + received_dv[destination]){
+               DV[itr->first] = cost_to_source + received_dv[destination];
+                next_hops[destination] = source_id;
         }
 
 
@@ -221,29 +222,25 @@ void update_dv(map<uint16_t ,uint16_t > &DV,map<uint16_t ,uint16_t > &next_hops,
     }
 
 
-    for(auto &a : all_nodes){
-        if(a.second && a.second->operating == 0) next_hops[a.first] = INF;
+//    for(auto &a : all_nodes)
+
+    for(map<uint16_t ,router* >::iterator a = all_nodes.begin(); a != all_nodes.end(); a++)
+    {
+        if(a->second && a->second->operating == 0) next_hops[a->first] = INF;
     }
 
-//    for(auto &dv : DV){
-//        if(dv.second == INF) next_hops[dv.first] = INF;
-//    }
-
-
-
-    cout << "local finished updating " << endl;
+    cout << "finish updating " << endl;
 
 
 }
-
-
-
 
 void display_all_nodes(map<uint16_t , router*> &all_nodes){
     cout << "=============" << endl;
-    for(auto a : all_nodes){
-        if(a.second == NULL) continue;
-        cout << " " <<  a.first << " operating " << a.second->operating << endl;
+//    for(auto a : all_nodes)
+     for(map<uint16_t ,router* >::iterator a = all_nodes.begin(); a != all_nodes.end(); a++)
+    {
+        if(a->second == NULL) continue;
+        cout << " " <<  a->first << " operating " << a->second->operating << " ip " << a->second->ip << " data port " << a->second->data_port << endl;
     }
     cout << "=============" << endl;
 
@@ -251,41 +248,38 @@ void display_all_nodes(map<uint16_t , router*> &all_nodes){
 
 
 
-void udp_broad_cast_hello(uint16_t local_port , vector<pair<uint16_t, uint32_t >> &neighbors){
-    for (auto a : neighbors) {
+//void udp_broad_cast_hello(uint16_t local_port , vector<pair<uint16_t, uint32_t >> &neighbors){
+//    for (auto a : neighbors) {
+//
+//        string destAddress = to_string(a.second);             // First arg:  destination address
+//
+//        print_ip(a.second);
+//        unsigned short destPort = a.first;  // Second arg: destination port
+//
+//
+//        string tmp = "GGWP from " + to_string(local_port);
+//
+//
+//        char sendString[tmp.size() + 1];
+//        strcpy(sendString, tmp.c_str());	// or pass &s[0]
+//
+//
+//        try {
+//            UDPSocket sock;
+//
+//            cout << "send out bytes " << strlen(sendString) << endl;
+//
+//            sock.sendTo(sendString, strlen(sendString), destAddress, destPort);
+//
+//
+//        } catch (SocketException &e) {
+//            cerr << e.what() << endl;
+//            exit(1);
+//        }
+//
+//    }
 
-        string destAddress = to_string(a.second);             // First arg:  destination address
-
-        print_ip(a.second);
-        unsigned short destPort = a.first;  // Second arg: destination port
-
-
-        string tmp = "GGWP from " + to_string(local_port);
-
-
-        char sendString[tmp.size() + 1];
-        strcpy(sendString, tmp.c_str());	// or pass &s[0]
-
-
-        try {
-            UDPSocket sock;
-
-            cout << "send out bytes " << strlen(sendString) << endl;
-
-            sock.sendTo(sendString, strlen(sendString), destAddress, destPort);
-
-
-        } catch (SocketException &e) {
-            cerr << e.what() << endl;
-            exit(1);
-        }
-
-    }
-
-
-
-
-}
+//}
 
 
 void tcp_send_hello(uint16_t local_port, uint32_t destination_ip , uint16_t destination_port, map<uint16_t , uint16_t > &next_hops){
@@ -334,16 +328,26 @@ void route_to_next_hop(char *tcp_pkt, map<uint16_t, uint16_t> &next_hops, map<ui
     uint32_t next_hop_ip = 0;
     uint16_t next_hop_data_port = 0;
 
-    int bytes = modify_tcp_pkt(new_pkt, tcp_pkt, destination_ip);
+    uint8_t post_ttl;
+
+    int bytes = modify_tcp_pkt(new_pkt, tcp_pkt, destination_ip, post_ttl);
+
+    if(post_ttl <= 0) {
+        cout << "pkts dropped " << endl;
+        return;
+    }
 
 
     cout << bytes << " bytes: Modified pkt " << endl;
 
 
 
-    for(auto a : all_nodes){
-        if(a.second->ip == destination_ip) {
-            destination_id = a.first;
+//    for(auto a : all_nodes)
+
+        for(map<uint16_t ,router* >::iterator a = all_nodes.begin(); a != all_nodes.end(); a++)
+        {
+        if(a->second->ip == destination_ip) {
+            destination_id = a->first;
             break;
         }
 
@@ -485,18 +489,30 @@ vector<pair<char*, int>> load_file_contents(const char* filename){
             int new_size = filesize - byte;
             chunck = (char*)malloc(sizeof(char)*(new_size));
             int bytesread = fread(chunck, sizeof(char), new_size, filehandle);
+
+            cout << "---------------" << endl;
+            cout << chunck << endl;
+            cout << "---------------" << endl;
+
             ret.push_back({chunck, bytesread});
             break;
         }
 
         chunck = (char*)malloc(sizeof(char)*1024);
-        int bytesread = fread(chunck, sizeof(char), 1024, filehandle + byte);
+        int bytesread = fread(chunck, sizeof(char), 1024, filehandle);
+
+        cout << "---------------" << endl;
+        cout << chunck << endl;
+        cout << "---------------" << endl;
+
 
         ret.push_back({chunck, bytesread});
 
 
 
     }
+
+    printf("---load file pkts complete\n");
 
     return ret;
 
@@ -520,6 +536,12 @@ vector<pair<char*, int>> load_file_contents(const char* filename){
 
 void post_crash(map<uint16_t ,uint16_t > &DV,map<uint16_t ,uint16_t > &next_hops, map<uint16_t , router*> &all_nodes,int current_id, int crashed_id, map<uint16_t , routing_packet > &neighbors){
 
+    old_dv = DV;
+
+    cout << "-------pre crash DV" << endl;
+    display_DV(old_dv,next_hops);
+    cout << "-------pre crash DV" << endl;
+
 
     all_nodes[crashed_id]->operating = 0;
 
@@ -529,8 +551,11 @@ void post_crash(map<uint16_t ,uint16_t > &DV,map<uint16_t ,uint16_t > &next_hops
     vector<routing_packet*> payloads;
 
 
-    for(auto a : all_nodes){
-        routing_packet *p = new routing_packet(0, 0,0,0,a.first, INF);
+//    for(auto a : all_nodes)
+    for(map<uint16_t ,router* >::iterator a = all_nodes.begin(); a != all_nodes.end(); a++)
+
+    {
+        routing_packet *p = new routing_packet(0, 0,0,0,a->first, INF);
         payloads.push_back(p);
     }
 
@@ -539,22 +564,53 @@ void post_crash(map<uint16_t ,uint16_t > &DV,map<uint16_t ,uint16_t > &next_hops
     next_hops[crashed_id] = INF;
 
 
-    for(auto n : next_hops){
-        if(n.second == crashed_id) {
-            DV[n.first] = INF;
-            next_hops[n.first] = INF;
+//    for(auto n : next_hops)
+
+    for(map<uint16_t ,uint16_t >::iterator n = next_hops.begin(); n != next_hops.end(); n++)
+
+    {
+        if(n->second == crashed_id) {
+            DV[n->first] = INF;
+            next_hops[n->first] = INF;
         }
     }
 
 
 
 
-    cout << " POST CRASH " << endl;
-    display_DV(DV, next_hops);
+    cout << " POST CRASH  " << endl;
+     display_DV(DV, next_hops);
 
     update_dv(DV,next_hops,all_nodes, current_id, current_id, payloads);
 
 
+
+
+
+}
+
+
+
+void write_datas_to_file(uint8_t id, vector<char*> &received_data){
+    string file_name = "file_" + to_string(unsigned(id));
+
+    cout << file_name << endl;
+
+    ofstream myfile;
+    myfile.open (file_name);
+//    for(auto p : received_data)
+
+    for(char* p : received_data)
+
+    {
+        char* recv = (char*) malloc(1024);
+        bzero(recv, 1024);
+        memcpy(recv, p, sizeof(char) * 1024);
+
+      myfile << recv;
+
+    }
+    myfile.close();
 
 
 

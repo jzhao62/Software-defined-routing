@@ -19,11 +19,14 @@ extern map<uint16_t , uint16_t > DV;
 extern map<uint16_t , uint16_t > next_hops;
 
 extern map<uint16_t , router*> all_nodes;
+extern vector<char*> received_file_pkts;
 
 
 extern map<uint16_t , routing_packet > neighbors;
 extern uint16_t router_number;
 extern routing_packet self;
+extern vector<char*> received_data;
+
 
 
 struct Timeout {

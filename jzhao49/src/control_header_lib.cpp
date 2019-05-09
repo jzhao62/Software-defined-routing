@@ -43,7 +43,7 @@ int create_routing_packet(char* buffer, uint16_t number, uint16_t source_port, u
     memcpy(buffer + byte, &source_ip, sizeof(source_ip)); byte += 4;
 
 
-    for(auto packet : dv){
+    for(routing_packet* packet : dv){
 
         uint32_t modified_ip = ntohl(packet->ip);
         uint16_t router_port = ntohs(packet->router_port);
@@ -68,17 +68,14 @@ int create_routing_packet(char* buffer, uint16_t number, uint16_t source_port, u
 int create_ROUTING_reponse_payload(char* buffer, map<uint16_t , uint16_t > &DV, map<uint16_t, uint16_t > &next_hops){
     unsigned int byte = 0;
 
+//    for(auto a : next_hops)
+    for(std :: map<uint16_t ,uint16_t >::iterator a = next_hops.begin(); a != next_hops.end(); a++)
+    {
 
-    cout << "begin wrapping " << endl;
-
-    for(auto a : next_hops){
-
-        uint16_t destination = a.first;
+        uint16_t destination = a->first;
         uint16_t padding = 0x00;
-        uint16_t hop_id = a.second;
-        uint16_t cost = DV[a.first];
-
-//        cout << destination << " " << padding << " " << hop_id << " " << cost << endl;
+        uint16_t hop_id = a->second;
+        uint16_t cost = DV[a->first];
 
         memcpy(buffer+byte, &destination, sizeof(destination)); byte+=2;
         memcpy(buffer+byte, &padding, sizeof(padding));         byte+=2;
@@ -87,7 +84,6 @@ int create_ROUTING_reponse_payload(char* buffer, map<uint16_t , uint16_t > &DV, 
 
     }
 
-//    cout << "finished wrapping " << byte << endl;
 
 return byte;
 
@@ -100,18 +96,11 @@ return byte;
 void extract_routing_packet(uint16_t &number, uint16_t &source_port, uint32_t &source_ip, uint16_t &source_id, vector<routing_packet*> &distant_payload, char* payload){
 
 
-//    cout << "---------------Extracting packet " << endl;
-
-
-
-
     unsigned int byte = 0;
     memcpy(&number, payload + byte, sizeof(number)); byte+=2;
     memcpy(&source_port, payload + byte, sizeof(source_port)); byte+=2;
     memcpy(&source_ip, payload + byte, sizeof(source_ip)); byte+=4;
 
-
-//    cout << " ----------------------total numbers " << number << " recv from " << source_port  << " " << source_ip << endl;
 
 
 
@@ -130,6 +119,8 @@ void extract_routing_packet(uint16_t &number, uint16_t &source_port, uint32_t &s
 
         if(htons(id) == 0) break;
 
+
+
         // represent a dummy data port here.
         routing_packet *p = new routing_packet(htonl(ip), htons(router_port), 0, 0x00, htons(id),htons(cost));
 
@@ -137,13 +128,10 @@ void extract_routing_packet(uint16_t &number, uint16_t &source_port, uint32_t &s
 
         if(htons(cost) == 0) source_id = htons(id);
 
-//        cout << "--------------hear from " << source_id << " which costs " << htons(cost) << " to go to " << htons(id) << endl;
+
+        if(MUTE == 0) cout << "--------------------------hear from " << source_id << " which costs " << htons(cost) << " to go to " << htons(id) << " " << ip << endl;
 
     }
-
-//    cout << "---------------Packet extraced from  " << source_id << endl;
-
-
 
 
 
@@ -181,7 +169,7 @@ int create_tcp_pkt(char* new_pkt, uint32_t destination_ip, uint8_t transfer_id, 
 
 
 
-int modify_tcp_pkt(char* new_pkt, char* pkt, uint32_t &ip){
+int modify_tcp_pkt(char* new_pkt, char* pkt, uint32_t &ip, uint8_t &ttl_){
 
 
     bzero(new_pkt, sizeof(new_pkt));
@@ -209,9 +197,57 @@ int modify_tcp_pkt(char* new_pkt, char* pkt, uint32_t &ip){
 
     ttl = ttl-1;
 
+    ttl_ = ttl;
+
     memcpy(&seq_number, pkt + byte, sizeof(uint16_t)); byte += 2;
 
     seq_number = ntohs(seq_number);
+
+
+
+    memcpy(&fin_seq, pkt + byte, sizeof(uint32_t)); byte += 4;
+
+    fin_seq = ntohl(fin_seq);
+
+
+    char* payload = (char*) malloc(1024);
+
+    memcpy(payload, pkt+byte, sizeof(char) * 1024);
+
+    byte = create_tcp_pkt(new_pkt, destination_ip, transfer_id, ttl,  seq_number, fin_seq,  payload);
+
+    return byte;
+
+
+
+}
+
+
+int copy_pkt(char* new_pkt, char* pkt, uint8_t &ttl, uint16_t &seq){
+    bzero(new_pkt, sizeof(new_pkt));
+
+    uint32_t destination_ip;
+    uint8_t transfer_id;
+    uint32_t fin_seq;
+
+
+    int byte = 0;
+
+    memcpy(&destination_ip, pkt + byte, sizeof(destination_ip)); byte += 4;
+
+    destination_ip = ntohl(destination_ip);
+
+    memcpy(&transfer_id, pkt + byte, sizeof(uint8_t)); byte += 1;
+
+    memcpy(&ttl, pkt + byte, sizeof(uint8_t)); byte += 1;
+
+    uint16_t  tmp;
+
+
+
+    memcpy(&tmp, pkt + byte, sizeof(uint16_t)); byte += 2;
+
+    seq = ntohs(tmp);
 
 
 
@@ -228,15 +264,30 @@ int modify_tcp_pkt(char* new_pkt, char* pkt, uint32_t &ip){
 
 
 
-    byte = create_tcp_pkt(new_pkt, destination_ip, transfer_id, ttl,  seq_number, fin_seq,  payload);
-
-
+    byte = create_tcp_pkt(new_pkt, destination_ip, transfer_id, ttl,  seq, fin_seq,  payload);
 
 
     return byte;
 
 
-
 }
 
 
+int extract_tcp_pkt(char* buffer, uint32_t &ip, uint32_t &fin, uint8_t &id, uint8_t &ttl, uint16_t &seq, char* recv){
+
+    bzero(recv, 1024);
+
+    memcpy(&ip, buffer, sizeof(uint32_t));
+    memcpy(&id, buffer+4, sizeof(uint8_t));
+    memcpy(&ttl, buffer+5, sizeof(uint8_t));
+    memcpy(&seq, buffer+6, sizeof(uint16_t));
+    memcpy(&fin, buffer + 8, sizeof(uint16_t));
+    memcpy(recv, buffer + 12, sizeof(char) * 1024);
+
+
+    seq = ntohs(seq);
+    fin = ntohl(fin);
+    ip = ntohl(ip);
+
+
+}

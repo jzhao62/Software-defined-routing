@@ -40,17 +40,13 @@ map<uint16_t , router*> all_nodes;
 
 
 vector<pair<uint16_t, uint32_t >> immediate_neighbors;
-
-
 uint16_t router_number;
-
-
-
- uint16_t my_router_port;
+uint16_t my_router_port;
 
 
 UDPSocket *router_sock;
 
+vector<char*> received_file_pkts;
 
 
 
@@ -415,10 +411,13 @@ void initialize(int sock_index, char* payload){
     map<uint16_t ,uint16_t > *tmp_dv = &DV;
 
 
-    for(auto n : neighbors){
+//    for(auto n : neighbors)
 
-        int id = int(n.first);
-        int cost = int(n.second.cost_from_source);
+    for(map<uint16_t , routing_packet > :: iterator n = neighbors.begin(); n != neighbors.end(); n++)
+    {
+
+        int id = int(n->first);
+        int cost = int(n->second.cost_from_source);
         next_hops[id] = id;
 
         DV[id] = cost;
@@ -456,6 +455,9 @@ void initialize(int sock_index, char* payload){
 
 
 
+    last_file = (char*)malloc(sizeof(char)*(1024 + 12));
+    second_last_file = (char*)malloc(sizeof(char)*(1024 + 12));
+
 
 
     gettimeofday(&next_send_time, NULL);
@@ -465,6 +467,9 @@ void initialize(int sock_index, char* payload){
     tv.tv_usec = 0;
 
     first_time = false;
+
+
+
 
 
 }
@@ -538,10 +543,14 @@ void update(int sock_index, char* payload){
     map<uint16_t ,uint16_t > *tmp_dv = &DV;
 
 
-    for(auto n : neighbors){
+    //for(auto n : neighbors)
 
-        int id = int(n.first);
-        int cost = int(n.second.cost_from_source);
+
+    for(map<uint16_t , routing_packet > :: iterator n = neighbors.begin(); n != neighbors.end(); n++)
+    {
+
+        int id = int(n->first);
+        int cost = int(n->second.cost_from_source);
         next_hops[id] = id;
 
         DV[id] = cost;
@@ -576,8 +585,11 @@ void update(int sock_index, char* payload){
 
 void crash(int sock_index){
 
-    for(auto a : neighbors){
-        a.second.cost_from_source = INF;
+    //for(auto a : neighbors)
+
+    for(map<uint16_t , routing_packet > :: iterator a = neighbors.begin(); a != neighbors.end(); a++)
+    {
+        a->second.cost_from_source = INF;
     }
 
 
@@ -586,10 +598,13 @@ void crash(int sock_index){
     map<uint16_t ,uint16_t > *tmp_dv = &DV;
 
 
-    for(auto n : neighbors){
+    //for(auto n : neighbors)
 
-        int id = int(n.first);
-        int cost = int(n.second.cost_from_source);
+    for(map<uint16_t , routing_packet > :: iterator n = neighbors.begin(); n != neighbors.end(); n++)
+    {
+
+        int id = int(n->first);
+        int cost = int(n->second.cost_from_source);
         next_hops[id] = id;
 
         DV[id] = cost;
@@ -652,7 +667,6 @@ void sendfile(int sock_index, char* cntrl_payload){
     memcpy(p2, cntrl_payload+byte, 12 + 1024);
 
 
-    cout << p2 << endl;
 
 
 
@@ -661,20 +675,57 @@ void sendfile(int sock_index, char* cntrl_payload){
     vector<pair<char*, int>> tcp_packets = load_file_contents(p2);
 
 
-    for(auto a : tcp_packets){
+    uint16_t seq = init_sequence_number;
 
-        cout << a.second << endl;
+
+    for(int i = 0; i < tcp_packets.size(); i++){
+
+        pair<char*, int> a = tcp_packets[i];
+
+        if(i == tcp_packets.size()-1) fin_seq = 1 << 31 ;
+
+        cout << " current fin " << fin_seq << endl;
+
 
         char* pkt = (char *) malloc(sizeof(char) * (12 + a.second));
 
 
-        int bytes = create_tcp_pkt(pkt,destination_ip, transfer_id,  init_TTL, init_sequence_number, fin_seq, a.first);
-
-        cout << "loaded " << bytes << endl;
+        int bytes = create_tcp_pkt(pkt,destination_ip, transfer_id,  init_TTL, seq++, fin_seq, a.first);
 
 
+//        route_to_next_hop(pkt, next_hops,all_nodes);
 
-        route_to_next_hop(pkt, next_hops,all_nodes);
+
+        uint16_t destination_id;
+        int next_hop_id = 0;
+        uint32_t next_hop_ip = 0;
+        uint16_t next_hop_data_port = 0;
+
+        //for(auto a : all_nodes)
+        for(map<uint16_t ,router* >::iterator a = all_nodes.begin(); a != all_nodes.end(); a++)
+        {
+            if(a->second && a->second->ip == destination_ip) {
+                destination_id = a->first;
+                break;
+            }
+
+        }
+
+
+        next_hop_id = next_hops[destination_id];
+
+        next_hop_ip = all_nodes[next_hop_id]->ip;
+        next_hop_data_port = all_nodes[next_hop_id]->data_port;
+
+
+
+        string v = print_ip(next_hop_ip);
+        const char *cstr = v.c_str();
+
+
+        printf("sending pkt to %d\n" , cstr);
+        tcp_send_pkt_to_neighbor(cstr, next_hop_data_port, pkt, bytes);
+        printf("pkt sent \n");
 
 
     }

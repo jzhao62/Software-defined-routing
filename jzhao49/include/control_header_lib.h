@@ -80,8 +80,13 @@ int create_ROUTING_reponse_payload(char* buffer, map<uint16_t , uint16_t > &DV, 
 
 int create_tcp_pkt(char* new_pkt, uint32_t destination_ip, uint8_t transfer_id, uint8_t ttl, uint16_t seq_number, uint32_t fin_seq, char* payload);
 
-int modify_tcp_pkt(char* new_pkt, char* pkt, uint32_t &ip);
+int modify_tcp_pkt(char* new_pkt, char* pkt, uint32_t &ip,uint8_t &ttl_);
 
 void route_to_next_hop(char *tcp_pkt, map<uint16_t, uint16_t> &next_hops, map<uint16_t , router*> &all_nodes);
+
+int copy_pkt(char* new_pkt, char* pkt, uint8_t &ttl, uint16_t &seq);
+
+
+int extract_tcp_pkt(char* pkt, uint32_t &ip, uint32_t &fin, uint8_t &id, uint8_t &ttl, uint16_t &seq, char* recv);
 
 #endif //PROJECT_CONTROL_HEADER_H

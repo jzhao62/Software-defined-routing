@@ -22,6 +22,8 @@
 
 #define INF 65535
 
-#define LARGE 65542
+#define MUTE 0
+#define LAST_FIN 2147483648
+
 
 #endif //PROJECT_GLOBAL_H

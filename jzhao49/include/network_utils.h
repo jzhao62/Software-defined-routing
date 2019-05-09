@@ -15,6 +15,10 @@
 
 using namespace std;
 
+
+extern map<uint16_t , uint16_t > old_dv;
+
+
 ssize_t recvALL(int sock_index, char *buffer, ssize_t nbytes);
 
 ssize_t sendALL(int sock_index, char *buffer, ssize_t nbytes);
@@ -42,7 +46,7 @@ string print_ip(unsigned int ip);
 
 
 
-void udp_broad_cast_hello(uint16_t local_port , vector<pair<uint16_t, uint32_t >> &neighbors);
+void udp_broad_cast_hello(uint16_t local_port , vector<pair<uint16_t, uint32_t > > &neighbors);
 
 
 void tcp_send_pkt_to_neighbor(const char *server_ip, int portno, char *buff, int bytes);
@@ -52,4 +56,6 @@ void listen_on_tcp_server(char buffer [], int sock_fd);
 void post_crash(map<uint16_t ,uint16_t > &DV,map<uint16_t ,uint16_t > &next_hops, map<uint16_t , router*> &all_nodes,int current_id, int crashed_id,map<uint16_t , routing_packet > &neighbors);
 
 
-vector<pair<char*, int>> load_file_contents(const char* filename);
+vector<pair<char*, int> > load_file_contents(const char* filename);
+
+void write_datas_to_file(uint8_t id, vector<char*> &received_data);

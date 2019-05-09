@@ -24,12 +24,11 @@ struct timeval next_send_time;
 struct timeval next_event_time;
 const int MAXRCVSTRING = 4096; // Longest string to receive
 
-
-
 map <uint16_t, __time_t > next_expected_time;
 
 
-
+char* last_file;
+char* second_last_file;
 
 bool first_time;
 bool crashed;
@@ -37,12 +36,11 @@ fd_set master_list;
 fd_set watch_list;
 int head_fd;
 
+vector<char*> received_data;
+
+
 
 void main_loop();
-
-
-
-
 
 
 void udp_broad_cast_DV(uint16_t local_port , uint16_t total_numbers, map<uint16_t ,uint16_t > &DV, map<uint16_t , routing_packet > &neighbors){
@@ -76,14 +74,18 @@ void udp_broad_cast_DV(uint16_t local_port , uint16_t total_numbers, map<uint16_
 
 
 
-    for (auto a : neighbors) {
-
-        if(a.first == self.router_id) continue;
+   // for (auto a : neighbors)
 
 
-        string destAddress = to_string(a.second.ip);             // First arg:  destination address
+    for(map<uint16_t , routing_packet > :: iterator a = neighbors.begin(); a != neighbors.end(); a++)
+    {
 
-        unsigned short destPort = a.second.router_port;  // Second arg: destination port
+        if(a->first == self.router_id) continue;
+
+
+        string destAddress = to_string(a->second.ip);             // First arg:  destination address
+
+        unsigned short destPort = a->second.router_port;  // Second arg: destination port
 
 
 
@@ -136,6 +138,16 @@ void main_loop() {
     while (true) {
         if(crashed == true) break;
 
+
+        for(auto a : next_expected_time){
+            cout << a.first << " expected at " << a.second<< endl;
+        }
+        if(next_expected_time.size() == 0){
+            display_DV(DV,next_hops);
+        }
+        cout << endl;
+
+
         watch_list = master_list;
         if (first_time) {
             selret = select(head_fd + 1, &watch_list, NULL, NULL, NULL);
@@ -167,6 +179,22 @@ void main_loop() {
             }
         }
 
+        gettimeofday(&curr_time, NULL);
+
+
+//                    for(auto a : next_expected_time)
+        for(map <uint16_t, __time_t > :: iterator a = next_expected_time.begin(); a != next_expected_time.end(); a++)
+        {
+            if(a->second < curr_time.tv_sec){
+                printf("%d is crashed \n", a->first);
+                next_expected_time.erase(a->first);
+                post_crash(DV,next_hops,all_nodes,self.router_id,a->first,neighbors);
+            }
+
+
+        }
+
+
 
 
 
@@ -188,21 +216,6 @@ void main_loop() {
 
                     /* router_socket */
                 else if (sock_index == router_socket) {
-
-
-
-                    gettimeofday(&curr_time, NULL);
-
-
-                    for(auto a : next_expected_time){
-                        if(a.second < curr_time.tv_sec){
-                            printf("%d is crashed \n", a.first);
-                            next_expected_time.erase(a.first);
-                            post_crash(DV,next_hops,all_nodes,self.router_id,a.first,neighbors);
-                        }
-
-
-                    }
 
 
                     uint16_t number;
@@ -245,11 +258,9 @@ void main_loop() {
                     update_dv(DV, next_hops, all_nodes, self.router_id, source_id, distant_payload);
 
 
-                    cout << " After feedback from " << source_id << endl;
 
-                    display_DV(DV, next_hops);
-
-                    display_all_nodes(all_nodes);
+                    if(MUTE == 0)display_DV(DV, next_hops);
+//                    if(MUTE == 0 )display_all_nodes(all_nodes);
 
 
 
@@ -272,45 +283,80 @@ void main_loop() {
 
                     //extract IP, port
 
+
                     uint32_t destination_ip;
+                    uint8_t id;
+                    uint8_t ttl;
+                    uint16_t seq_number;
+                    uint32_t  fin;
+                    char* recv = (char*) malloc(1024);
+
+                    extract_tcp_pkt(buffer,destination_ip, fin, id, ttl, seq_number, recv);
 
 
-                    memcpy(&destination_ip, buffer, sizeof(uint32_t));
 
-                    if(self.ip == ntohl(destination_ip)){
-                        char * recv = (char*) malloc(1024);
+                    if(self.ip == destination_ip){
+                        ttl--;
 
-                        memcpy(recv, buffer + 12, sizeof(char) * 1024);
+                        if(ttl <= 0){
+                            cout << "pkt dropped" << endl;
+                            return;
+                        }
+                        received_data.push_back(recv);
+                        if(fin == LAST_FIN){
+                            write_datas_to_file(id, received_data);
+                        }
 
-                        cout << "RECEIVED " << endl;
 
-                        cout << recv << endl;
+
+
+
+                        uint16_t seq1;
+                        uint16_t seq2;
+                        uint8_t ttl1;
+                        uint8_t ttl2;
+
+
+                        int ofsets_one = copy_pkt(second_last_file, last_file, ttl1, seq1);
+                        int ofsets_two = copy_pkt(last_file, buffer, ttl2, seq2);
+
+
+                        cout << "-----------DESTINATION----------" << endl;
+                        cout << "           newest pkt " << unsigned(ttl2) << " " << seq2 << endl;
+                        cout << "           2nd newest pkt " << unsigned(ttl1) << " " << seq1 << endl;
+                        cout << "           RECEIVED " << unsigned(ttl) << " " << seq_number << " " << endl;
+                        cout << "-----------DESTINATION----------" << endl;
+
 
                     }
 
                     else{
+
+                        uint16_t seq1;
+                        uint16_t seq2;
+                        uint8_t ttl1;
+                        uint8_t ttl2;
+
+                        int ofsets_one = copy_pkt(second_last_file, last_file, ttl1, seq1);
+                        int ofsets_two = copy_pkt(last_file, buffer, ttl2, seq2);
+
+
+                        cout << "---------------------------" << endl;
+                        cout << "           newest pkt " << unsigned(ttl2) << " " << seq2 << endl;
+                        cout << "           2nd newest pkt " << unsigned(ttl1) << " " << seq1 << endl;
+                        cout << "---------------------------" << endl;
+
+                        //decreament the ttl inside
                         route_to_next_hop(buffer,next_hops,all_nodes);
                     }
 
 
-
-
-
-
-                    // route to next hop towards destination
-
-
-
                 }
 
-                    /* Existing connection */
                 else {
-                    // sockfd is either link to controller(control message), or link to another router(switch datagram)
                     if (isControl(sock_index)) {
-//                        cout << "[control command]" << endl;
                         if (!control_recv_hook(sock_index)) FD_CLR(sock_index, &master_list);
                     }
-
 
                     else {
                         ERROR("Unknown socket index");
