@@ -16,7 +16,8 @@
 using namespace std;
 
 
-extern map<uint16_t , uint16_t > old_dv;
+//extern map<uint16_t , uint16_t > old_dv;
+extern map <uint16_t , int> update_times;
 
 
 ssize_t recvALL(int sock_index, char *buffer, ssize_t nbytes);
@@ -59,3 +60,6 @@ void post_crash(map<uint16_t ,uint16_t > &DV,map<uint16_t ,uint16_t > &next_hops
 vector<pair<char*, int> > load_file_contents(const char* filename);
 
 void write_datas_to_file(uint8_t id, vector<char*> &received_data);
+
+
+bool update_complete(map<uint16_t ,uint16_t > &DV, map<uint16_t ,uint16_t > &prev_dv, map<uint16_t ,uint16_t > &next_hops, map<uint16_t ,uint16_t > &prev_hop);

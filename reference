@@ -1,7 +1,7 @@
 ./controller -t /home/jingyi/CLionProjects/cse489589_assignment3/controller/topo5 -r 1
 ./controller -t /home/jingyi/CLionProjects/cse489589_assignment3/controller/topo5 -u 1 4 99
 ./controller -t /home/jingyi/CLionProjects/cse489589_assignment3/controller/topo5 -c 1
-./controller -t /home/jingyi/CLionProjects/cse489589_assignment3/controller/topo5 -f 1 2 10 20 101 GGWP
+./controller -t /home/jingyi/CLionProjects/cse489589_assignment3/controller/topo6 -f 1 5 10 20 101 sample_doc
 
 
 

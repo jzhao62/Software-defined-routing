@@ -281,7 +281,7 @@ int extract_tcp_pkt(char* buffer, uint32_t &ip, uint32_t &fin, uint8_t &id, uint
     memcpy(&id, buffer+4, sizeof(uint8_t));
     memcpy(&ttl, buffer+5, sizeof(uint8_t));
     memcpy(&seq, buffer+6, sizeof(uint16_t));
-    memcpy(&fin, buffer + 8, sizeof(uint16_t));
+    memcpy(&fin, buffer + 8, sizeof(uint32_t));
     memcpy(recv, buffer + 12, sizeof(char) * 1024);
 
 

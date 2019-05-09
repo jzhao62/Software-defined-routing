@@ -139,9 +139,14 @@ void main_loop() {
         if(crashed == true) break;
 
 
-        for(auto a : next_expected_time){
-            cout << a.first << " expected at " << a.second<< endl;
+
+        if(MUTE == 0){
+            for(auto a : next_expected_time){
+                cout << a.first << " expected at " << a.second<< endl;
+            }
         }
+
+
         if(next_expected_time.size() == 0){
             display_DV(DV,next_hops);
         }
@@ -255,7 +260,22 @@ void main_loop() {
 
                     if(source_port == self.router_port) continue;
 
+
+                    map<uint16_t, uint16_t > prev_dv = DV;
+                    map<uint16_t ,uint16_t > prev_hop = next_hops;
+
                     update_dv(DV, next_hops, all_nodes, self.router_id, source_id, distant_payload);
+
+//                    if(update_complete(DV, prev_dv, next_hops,prev_hop) == true){
+//                        cout << "update complete" << endl;
+////                        display_DV(DV, next_hops);
+////                        display_DV(prev_dv, prev_hop);
+//                    }
+//                    else{
+//                        cout << "update not complete" << endl;
+////                        display_DV(DV, next_hops);
+////                        display_DV(prev_dv, prev_hop);
+//                    }
 
 
 
@@ -294,6 +314,8 @@ void main_loop() {
                     extract_tcp_pkt(buffer,destination_ip, fin, id, ttl, seq_number, recv);
 
 
+                    cout << unsigned(id) << " " << fin << endl;
+
 
                     if(self.ip == destination_ip){
                         ttl--;
@@ -303,13 +325,12 @@ void main_loop() {
                             return;
                         }
                         received_data.push_back(recv);
+
+
+
                         if(fin == LAST_FIN){
                             write_datas_to_file(id, received_data);
                         }
-
-
-
-
 
                         uint16_t seq1;
                         uint16_t seq2;
