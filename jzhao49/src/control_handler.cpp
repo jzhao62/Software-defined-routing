@@ -39,7 +39,7 @@ map<uint16_t , uint16_t > next_hops;
 map<uint16_t , router*> all_nodes;
 
 
-vector<pair<uint16_t, uint32_t >> immediate_neighbors;
+vector<pair<uint16_t, uint32_t > > immediate_neighbors;
 uint16_t router_number;
 uint16_t my_router_port;
 
@@ -490,7 +490,7 @@ void routing(int sock_index){
     payload_len = create_ROUTING_reponse_payload(ctrl_response_payload, DV,next_hops);
 
 
-    ctrl_response_header = create_response_header(sock_index, 0, 0x02, payload_len);
+    ctrl_response_header = create_response_header(sock_index, 0x02, 0, payload_len);
 
 
 
@@ -502,6 +502,7 @@ void routing(int sock_index){
     memcpy(ctrl_response, ctrl_response_header, CONTROL_HEADER_SIZE);
     /* Copy Payload */
     memcpy(ctrl_response + CONTROL_HEADER_SIZE, ctrl_response_payload, payload_len);
+
 
 
     int ret = sendALL(sock_index, ctrl_response, response_len);
@@ -562,16 +563,9 @@ void update(int sock_index, char* payload){
 
 
 
-
-
-
-
-
-
-
     char* ctrl_response_header;
     uint16_t payload_len= 0;
-    ctrl_response_header = create_response_header(sock_index, 0, 0x03, payload_len);
+    ctrl_response_header = create_response_header(sock_index, 0x03, 0, payload_len);
 
 
     int ret = sendALL(sock_index, ctrl_response_header, 8);
@@ -672,7 +666,7 @@ void sendfile(int sock_index, char* cntrl_payload){
 
     printf("start routing\n");
 
-    vector<pair<char*, int>> tcp_packets = load_file_contents(p2);
+    vector<pair<char*, int> > tcp_packets = load_file_contents(p2);
 
 
     uint16_t seq = init_sequence_number;
@@ -732,23 +726,9 @@ void sendfile(int sock_index, char* cntrl_payload){
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     char* ctrl_response_header;
     uint16_t payload_len= 0;
-    ctrl_response_header = create_response_header(sock_index, 0, 0x05, payload_len);
+    ctrl_response_header = create_response_header(sock_index, 0x05, 0 , payload_len);
 
 
     int ret = sendALL(sock_index, ctrl_response_header, 8);

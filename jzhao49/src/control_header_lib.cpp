@@ -43,8 +43,11 @@ int create_routing_packet(char* buffer, uint16_t number, uint16_t source_port, u
     memcpy(buffer + byte, &source_ip, sizeof(source_ip)); byte += 4;
 
 
-    for(routing_packet* packet : dv){
+//    for(routing_packet* packet : dv)
 
+    for(int i = 0; i < dv.size(); i++)
+    {
+        routing_packet* packet = dv[i];
         uint32_t modified_ip = ntohl(packet->ip);
         uint16_t router_port = ntohs(packet->router_port);
         uint16_t p = ntohs(packet->padding);
@@ -76,7 +79,6 @@ int create_ROUTING_reponse_payload(char* buffer, map<uint16_t , uint16_t > &DV, 
         uint16_t padding = 0x00;
         uint16_t hop_id = a->second;
         uint16_t cost = DV[a->first];
-
         memcpy(buffer+byte, &destination, sizeof(destination)); byte+=2;
         memcpy(buffer+byte, &padding, sizeof(padding));         byte+=2;
         memcpy(buffer+byte, &hop_id, sizeof(hop_id));           byte+=2;

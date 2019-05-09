@@ -13,6 +13,7 @@
 #include <cstring>
 #include <network_utils.h>
 #include <control_header_lib.h>
+#include <sstream>
 
 
 using namespace std;
@@ -83,7 +84,15 @@ void udp_broad_cast_DV(uint16_t local_port , uint16_t total_numbers, map<uint16_
         if(a->first == self.router_id) continue;
 
 
-        string destAddress = to_string(a->second.ip);             // First arg:  destination address
+//        string destAddress = to_string(a->second.ip);             // First arg:  destination address
+
+
+        std::string destAddress;
+        std::stringstream ss;
+        ss << a->second.ip;
+        destAddress= ss.str();
+
+//        cout << destAddress << " " << out_string << "------ " << a->second.ip << endl;
 
         unsigned short destPort = a->second.router_port;  // Second arg: destination port
 
@@ -140,17 +149,16 @@ void main_loop() {
 
 
 
-        if(MUTE == 0){
-            for(auto a : next_expected_time){
-                cout << a.first << " expected at " << a.second<< endl;
-            }
-        }
+//        if(MUTE == 0){
+//            for(auto a : next_expected_time){
+//                cout << a.first << " expected at " << a.second<< endl;
+//            }
+//        }
 
 
         if(next_expected_time.size() == 0){
             display_DV(DV,next_hops);
         }
-        cout << endl;
 
 
         watch_list = master_list;

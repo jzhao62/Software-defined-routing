@@ -142,8 +142,34 @@ string print_ip(unsigned int ip)
     int v3 = (int) bytes[1];
     int v4 = (int) bytes[0];
 
+    std::string p1;
+    std::string p2;
+    std::string p3;
+    std::string p4;
 
-    string v = to_string(v1) + '.' + to_string(v2) + '.' +to_string(v3) + '.' + to_string(v4);
+    std::stringstream ss;
+
+    ss << v1;
+    p1 = ss.str();
+
+    ss.str("");
+    ss << v2;
+    p2 = ss.str();
+
+    ss.str("");
+    ss << v3;
+    p3 = ss.str();
+
+    ss.str("");
+    ss << v4;
+    p4 = ss.str();
+
+    ss.str("");
+
+    string v = p1 + '.' +  p2 + '.' + p3 + '.' + p4;
+
+
+//    string v = to_string(v1) + '.' + to_string(v2) + '.' +to_string(v3) + '.' + to_string(v4);
 
     return v;
 }
@@ -156,10 +182,11 @@ void update_dv(map<uint16_t ,uint16_t > &DV,map<uint16_t ,uint16_t > &next_hops,
     map<uint16_t ,uint16_t > prev_hop = next_hops;
 
 //    for(auto a : received_pkts)
+//    for(routing_packet* a : received_pkts)
 
-    for(routing_packet* a : received_pkts)
-
+    for(int i = 0; i < received_pkts.size(); i++)
     {
+        routing_packet* a = received_pkts[i];
         if(all_nodes.find(a->router_id) == all_nodes.end() || all_nodes[a->router_id]->ip == 0){
             all_nodes[a->router_id] = new router(a->router_id, a->ip, a->router_port, a->data_port, 1);
             cout << "newly added " << a->router_id << " " << a->ip<< endl;
@@ -225,9 +252,6 @@ void update_dv(map<uint16_t ,uint16_t > &DV,map<uint16_t ,uint16_t > &next_hops,
 
 
 
-
-
-
 }
 
 void display_all_nodes(map<uint16_t , router*> &all_nodes){
@@ -245,37 +269,6 @@ void display_all_nodes(map<uint16_t , router*> &all_nodes){
 
 
 
-void tcp_send_hello(uint16_t local_port, uint32_t destination_ip , uint16_t destination_port, map<uint16_t , uint16_t > &next_hops){
-
-
-        string destAddress = to_string(destination_ip);             // First arg:  destination address
-
-        print_ip(destination_ip);
-        unsigned short destPort = destination_port;  // Second arg: destination port
-
-
-        string tmp = "GGWP from " + to_string(local_port);
-
-
-        char sendString[tmp.size() + 1];
-        strcpy(sendString, tmp.c_str());	// or pass &s[0]
-
-
-        try {
-            TCPSocket sock;
-
-            cout << "send out bytes " << strlen(sendString) << endl;
-
-            sock.send(sendString, strlen(sendString));
-
-
-        } catch (SocketException &e) {
-            cerr << e.what() << endl;
-            exit(1);
-        }
-
-
-}
 
 
 // modify ttl and send pkt to the next hop according to destination
@@ -429,12 +422,9 @@ std::ifstream::pos_type file_len(const char* filename)
     return in.tellg();
 }
 
-vector<pair<char*, int>> load_file_contents(const char* filename){
+vector<pair<char*, int> > load_file_contents(const char* filename){
 
-    vector<pair<char*, int>> ret;
-
-
-
+    vector<pair<char*, int> > ret;
 
     FILE* filehandle = fopen(filename,"r");
 
@@ -555,40 +545,83 @@ void post_crash(map<uint16_t ,uint16_t > &DV,map<uint16_t ,uint16_t > &next_hops
 
 
 void write_datas_to_file(uint8_t id, vector<char*> &received_data){
-    string file_name = "file_" + to_string(unsigned(id));
 
-    cout << file_name << endl;
+//    string p1;
+//    stringstream ss;
+//    ss << unsigned(id);
+//    p1 = ss.str();
+//
+//    string file_name = "file_" + p1;
+//
+//    cout << file_name << endl;
+//
+//    ofstream myfile;
+//    myfile.open (file_name);
+////    for(auto p : received_data)
+//
+////    for(char* p : received_data)
+//
+//    for(int i = 0; i < received_data.size(); i++)
+//    {
+//        char* p = received_data[i];
+//        char* recv = (char*) malloc(1024);
+//        bzero(recv, 1024);
+//        memcpy(recv, p, sizeof(char) * 1024);
+//
+//      myfile << recv;
+//
+//    }
+//    myfile.close();
 
-    ofstream myfile;
-    myfile.open (file_name);
-//    for(auto p : received_data)
 
-    for(char* p : received_data)
-
-    {
-        char* recv = (char*) malloc(1024);
-        bzero(recv, 1024);
-        memcpy(recv, p, sizeof(char) * 1024);
-
-      myfile << recv;
-
-    }
-    myfile.close();
-
-
-
-}
-
-
-bool update_complete(map<uint16_t ,uint16_t > &DV, map<uint16_t ,uint16_t > &prev_dv, map<uint16_t ,uint16_t > &next_hops, map<uint16_t ,uint16_t > &prev_hop){
-    for(map<uint16_t ,uint16_t >::iterator itr = DV.begin(); itr != DV.end(); itr++){
-        uint16_t destination = itr->first;
-        if(DV[destination] != prev_dv[destination] || next_hops[destination] != prev_hop[destination]){
-            return false;
-        }
-
-    }
-
-    return true;
 
 }
+
+
+//void tcp_send_hello(uint16_t local_port, uint32_t destination_ip , uint16_t destination_port, map<uint16_t , uint16_t > &next_hops){
+//
+//
+//        string destAddress = to_string(destination_ip);             // First arg:  destination address
+//
+//        print_ip(destination_ip);
+//        unsigned short destPort = destination_port;  // Second arg: destination port
+//
+//
+//        string tmp = "GGWP from " + to_string(local_port);
+//
+//
+//        char sendString[tmp.size() + 1];
+//        strcpy(sendString, tmp.c_str());	// or pass &s[0]
+//
+//
+//        try {
+//            TCPSocket sock;
+//
+//            cout << "send out bytes " << strlen(sendString) << endl;
+//
+//            sock.send(sendString, strlen(sendString));
+//
+//
+//        } catch (SocketException &e) {
+//            cerr << e.what() << endl;
+//            exit(1);
+//        }
+//
+//
+//}
+
+
+
+
+//bool update_complete(map<uint16_t ,uint16_t > &DV, map<uint16_t ,uint16_t > &prev_dv, map<uint16_t ,uint16_t > &next_hops, map<uint16_t ,uint16_t > &prev_hop){
+//    for(map<uint16_t ,uint16_t >::iterator itr = DV.begin(); itr != DV.end(); itr++){
+//        uint16_t destination = itr->first;
+//        if(DV[destination] != prev_dv[destination] || next_hops[destination] != prev_hop[destination]){
+//            return false;
+//        }
+//
+//    }
+//
+//    return true;
+//
+//}

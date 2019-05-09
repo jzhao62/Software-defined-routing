@@ -46,12 +46,17 @@ struct __attribute__((__packed__)) routing_packet {
     uint32_t ip;
     uint16_t router_port;
     uint16_t data_port;
-    uint16_t padding = 0x00;
+    uint16_t padding;
     uint16_t router_id;
     uint16_t cost_from_source;
     routing_packet(){}
     routing_packet(uint32_t a, uint16_t b,uint16_t c,uint16_t d,uint16_t e, uint16_t f):
-        ip(a), router_port(b), data_port(c), router_id(e), cost_from_source(f){}
+        ip(a),
+        router_port(b),
+        data_port(c),
+        padding(0x00),
+        router_id(e),
+        cost_from_source(f){}
 
 
 };
