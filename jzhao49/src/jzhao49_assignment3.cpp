@@ -1,6 +1,4 @@
 /**
- * @bilinshi_assignment3
- * @author  Bilin Shi <bilinshi@buffalo.edu>
  * @version 1.0
  *
  * @section LICENSE

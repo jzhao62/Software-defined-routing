@@ -3,7 +3,19 @@
 ./controller -t /home/jingyi/CLionProjects/cse489589_assignment3/controller/topo5 -c 1
 ./controller -t /home/jingyi/CLionProjects/cse489589_assignment3/controller/topo6 -f 1 5 10 20 101 sample_doc
 
+
+
+
 ./controller -t /local/Spring_2019/jzhao49/cse489589_assignment3/controller/example.topology -r 1
+
+
+
+./grader_controller -c grader.cfg -d /local/Spring_2019/jzhao49/grader_staging -s /CLionProjects/cse489589_assignment3/jzhao49_pa3.tar -ctrl /CLionProjects/cse489589_assignment3/controller/controller -t author
+
+
+
+
+
 
 
 # interfaces(5) file used by ifup(8) and ifdown(8)

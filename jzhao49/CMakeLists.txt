@@ -14,7 +14,7 @@ add_executable(p3
         include/control_header_lib.h
         include/network_utils.h
         include/PracticalSocket.h
-        src/jzhao49.cpp
+        src/jzhao49_assignment3.cpp
         src/connection_manager.cpp
         src/control_handler.cpp
         src/data_handler.cpp

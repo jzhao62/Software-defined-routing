@@ -4,7 +4,7 @@
 
 
 
-#define AUTHOR_STATEMENT "I, Jingyi, have read and understood the course academic integrity policy."
+#define AUTHOR_STATEMENT "I, jzhao49, have read and understood the course academic integrity policy."
 
 #include <stdint.h>
 #include <vector>
