@@ -224,7 +224,6 @@ bool control_recv_hook(int sock_index) {
             break;
         case UPDATE:
             update(sock_index, cntrl_payload);
-
             break;
         case CRASH:
             crash(sock_index);
@@ -270,9 +269,10 @@ void author(int sock_index) {
     // length of the AUTHOR statement
     payload_len = sizeof(AUTHOR_STATEMENT) - 1; // Discount the NULL character
     ctrl_response_payload = (char *) malloc(payload_len);
-
     memcpy(ctrl_response_payload, AUTHOR_STATEMENT, payload_len);
-    cout << AUTHOR_STATEMENT << endl;
+
+
+
 
     ctrl_response_header = create_response_header(sock_index, 0, 0, payload_len);
 
@@ -280,6 +280,7 @@ void author(int sock_index) {
     // length of the entire response
     response_len = CONTROL_HEADER_SIZE + payload_len;
     ctrl_response = (char *) malloc(response_len);
+
     /* Copy Header */
     memcpy(ctrl_response, ctrl_response_header, CONTROL_HEADER_SIZE);
     /* Copy Payload */
@@ -310,8 +311,6 @@ void initialize(int sock_index, char* payload){
     uint16_t curr_cost;
     uint32_t curr_router_ip;
 
-    struct Timeout router_timeout;
-
 
 
     int overhead = 0;
@@ -320,12 +319,10 @@ void initialize(int sock_index, char* payload){
 
     router_number = ntohs(router_number);
     overhead += 2;
-    cout << "router_number number: " << router_number << endl;
 
     memcpy(&time_interval, payload + overhead, sizeof(time_interval));
     time_interval = ntohs(time_interval);
     overhead += 2;
-    cout << "time interval: " << time_interval << endl;
 
     /* init neighbor expire time to inifinity */
     struct timeval tmp_tv;
@@ -390,8 +387,6 @@ void initialize(int sock_index, char* payload){
 
             string x = print_ip(self.ip);
 
-            cout << x << endl;
-
             continue;
         }
 
@@ -404,7 +399,8 @@ void initialize(int sock_index, char* payload){
     }
 
 
-    initialize_dv(DV, next_hops, int(self.router_id), int(router_number));
+    initialize_dv(DV, next_hops, self.router_id, router_number);
+
 
 
 
@@ -416,15 +412,18 @@ void initialize(int sock_index, char* payload){
     for(map<uint16_t , routing_packet > :: iterator n = neighbors.begin(); n != neighbors.end(); n++)
     {
 
-        int id = int(n->first);
-        int cost = int(n->second.cost_from_source);
+        int id = n->first;
+        int cost = n->second.cost_from_source;
         next_hops[id] = id;
-
         DV[id] = cost;
     }
 
 
+    printf("INITIALIZED\n");
     display_DV(DV, next_hops);
+    printf("INITIALIZED\n");
+
+
 
 
     char *ctrl_response_header, *ctrl_response_payload, *ctrl_response;
@@ -481,13 +480,56 @@ void initialize(int sock_index, char* payload){
 
 
 void routing(int sock_index){
-    uint16_t payload_len;
+    uint16_t payload_len = 0;
     uint16_t response_len;
     char *ctrl_response_header;
-    char *ctrl_response_payload;
+    char ctrl_response_payload[80];
     char *ctrl_response;
 
-    payload_len = create_ROUTING_reponse_payload(ctrl_response_payload, DV,next_hops);
+
+    //TODO: why this function does not work
+//   payload_len = create_ROUTING_reponse_payload(ctrl_response_payload, DV,next_hops);
+
+    int byte = 0;
+
+    string detail = "";
+
+
+    for(map<uint16_t ,uint16_t >::iterator a = next_hops.begin(); a != next_hops.end(); a++)
+    {
+
+
+        uint16_t destination = a->first;
+        uint16_t padding = 0;
+        uint16_t hop_id = a->second;
+        uint16_t cost = DV[a->first];
+
+        if(cost == 10000) cost = 9;
+
+
+
+
+        if(destination < 1 || destination > 5){
+            next_hops.erase(destination);
+            DV.erase(destination);
+            continue;
+        }
+
+        printf("destination %d, hop_id %d, cost %d \n", destination, hop_id, cost);
+
+        destination = htons(destination);
+        padding = htons(padding);
+        hop_id = htons(hop_id);
+        cost = htons(cost);
+
+        memcpy(ctrl_response_payload+byte,   &destination, sizeof(uint16_t));            byte+=2;
+        memcpy(ctrl_response_payload+byte,   &padding,     sizeof(uint16_t));            byte+=2;
+        memcpy(ctrl_response_payload+byte,   &hop_id,      sizeof(uint16_t));            byte+=2;
+        memcpy(ctrl_response_payload+byte,   &cost,        sizeof(uint16_t));            byte+=2;
+    }
+    payload_len = 40;
+
+
 
 
     ctrl_response_header = create_response_header(sock_index, 0x02, 0, payload_len);
@@ -498,17 +540,11 @@ void routing(int sock_index){
 
 
     ctrl_response = (char *) malloc(response_len);
-    /* Copy Header */
     memcpy(ctrl_response, ctrl_response_header, CONTROL_HEADER_SIZE);
-    /* Copy Payload */
     memcpy(ctrl_response + CONTROL_HEADER_SIZE, ctrl_response_payload, payload_len);
 
 
-
     int ret = sendALL(sock_index, ctrl_response, response_len);
-
-
-    if(ret == -1) ERROR("FAILED to send routing response")
 
 }
 

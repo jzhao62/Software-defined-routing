@@ -247,8 +247,6 @@ void main_loop() {
                         int bytesRcvd = udp_recvFrom(sock_index,recvString, MAXRCVSTRING, sourceAddress,sourcePort);
 
 
-//                        cout << "---> received bytes: " << bytesRcvd << endl;
-
 
                         char*buf = recvString;
 
@@ -258,7 +256,6 @@ void main_loop() {
                     gettimeofday(&curr_time, NULL);
 
 
-//                    cout << "***************received routing packet from  " << source_id << " at " << curr_time.tv_sec  <<  endl;
 
 
                     if(source_id != self.router_id)next_expected_time[source_id] = curr_time.tv_sec + 3 * time_period;
@@ -273,18 +270,6 @@ void main_loop() {
                     map<uint16_t ,uint16_t > prev_hop = next_hops;
 
                     update_dv(DV, next_hops, all_nodes, self.router_id, source_id, distant_payload);
-
-//                    if(update_complete(DV, prev_dv, next_hops,prev_hop) == true){
-//                        cout << "update complete" << endl;
-////                        display_DV(DV, next_hops);
-////                        display_DV(prev_dv, prev_hop);
-//                    }
-//                    else{
-//                        cout << "update not complete" << endl;
-////                        display_DV(DV, next_hops);
-////                        display_DV(prev_dv, prev_hop);
-//                    }
-
 
 
                     if(MUTE == 0)display_DV(DV, next_hops);

@@ -9,6 +9,8 @@
 #include "control_header_lib.h"
 #include "../include/global.h"
 #include <map>
+#include <control_handler.h>
+
 using namespace std;
 
 
@@ -69,25 +71,44 @@ int create_routing_packet(char* buffer, uint16_t number, uint16_t source_port, u
 
 
 int create_ROUTING_reponse_payload(char* buffer, map<uint16_t , uint16_t > &DV, map<uint16_t, uint16_t > &next_hops){
-    unsigned int byte = 0;
+//    unsigned int byte = 0;
+//
+//    buffer = (char*) malloc(40);
+//
+//
+////    for(auto a : next_hops)
+//    for(map<uint16_t ,uint16_t >::iterator a = next_hops.begin(); a != next_hops.end(); a++)
+//    {
+//
+//        uint16_t destination = a->first;
+//        uint16_t padding = 0;
+//        uint16_t hop_id = a->second;
+//        uint16_t cost = DV[a->first];
+//
+//        printf("destination : %d, padding %d, hopid %d, cost %d \n", destination, padding, hop_id, cost);
+//
+//        destination = htons(destination);
+//        padding = htons(padding);
+//        hop_id = htons(padding);
+//        cost = htons(padding);
+//
+//        memcpy(buffer+byte,   &destination, sizeof(destination));        byte+=2;
+//        memcpy(buffer+byte,   &padding,     sizeof(padding));            byte+=2;
+//        memcpy(buffer+byte,   &hop_id,      sizeof(hop_id));             byte+=2;
+//        memcpy(buffer+byte,   &cost,        sizeof(cost));               byte+=2;
+//    }
 
-//    for(auto a : next_hops)
-    for(std :: map<uint16_t ,uint16_t >::iterator a = next_hops.begin(); a != next_hops.end(); a++)
-    {
 
-        uint16_t destination = a->first;
-        uint16_t padding = 0x00;
-        uint16_t hop_id = a->second;
-        uint16_t cost = DV[a->first];
-        memcpy(buffer+byte, &destination, sizeof(destination)); byte+=2;
-        memcpy(buffer+byte, &padding, sizeof(padding));         byte+=2;
-        memcpy(buffer+byte, &hop_id, sizeof(hop_id));           byte+=2;
-        memcpy(buffer+byte, &cost, sizeof(cost));               byte+=2;
+   int byte = sizeof(AUTHOR_STATEMENT) - 1; // Discount the NULL character
 
-    }
+//   buffer = (char*) malloc(byte);
+
+    memcpy(&buffer, AUTHOR_STATEMENT, byte);
 
 
-return byte;
+
+
+    return byte;
 
 }
 
@@ -96,16 +117,10 @@ return byte;
 
 
 void extract_routing_packet(uint16_t &number, uint16_t &source_port, uint32_t &source_ip, uint16_t &source_id, vector<routing_packet*> &distant_payload, char* payload){
-
-
     unsigned int byte = 0;
     memcpy(&number, payload + byte, sizeof(number)); byte+=2;
     memcpy(&source_port, payload + byte, sizeof(source_port)); byte+=2;
     memcpy(&source_ip, payload + byte, sizeof(source_ip)); byte+=4;
-
-
-
-
     for(int i = 0; i < number; i++){
         uint32_t ip;
         uint16_t router_port;

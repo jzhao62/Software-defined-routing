@@ -10,8 +10,8 @@
 
 
 
-./grader_controller -c grader.cfg -d /local/Spring_2019/jzhao49/grader_staging -s /CLionProjects/cse489589_assignment3/jzhao49_pa3.tar -ctrl /CLionProjects/cse489589_assignment3/controller/controller -t author
-
+./grader_controller -c grader.cfg -d /local/Spring_2019/jzhao49/grader_staging -s ~/CLionProjects/cse489589_assignment3/jzhao49_pa3.tar -ctrl ~/CLionProjects/cse489589_assignment3/controller/controller -t author
+./grader_controller -c grader.cfg -d /local/Spring_2019/jzhao49/grader_staging -s ~/CLionProjects/cse489589_assignment3/jzhao49_pa3.tar -ctrl ~/CLionProjects/cse489589_assignment3/controller/controller -t author -nu -nb
 
 
 

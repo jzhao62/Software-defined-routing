@@ -60,7 +60,10 @@ void initialize_dv(map<uint16_t, uint16_t > &DV, map<uint16_t, uint16_t > &next_
             DV[i] = 0;
             next_hops[i] = i;
         }
-        else DV[i] = 10000;
+        else {
+            DV[i] = 10000;
+            next_hops[i] = INF;
+        }
     }
 
 }
@@ -531,7 +534,7 @@ void post_crash(map<uint16_t ,uint16_t > &DV,map<uint16_t ,uint16_t > &next_hops
 
 
 
-    cout << " POST CRASH  " << endl;
+//    cout << " POST CRASH  " << endl;
      display_DV(DV, next_hops);
 
     update_dv(DV,next_hops,all_nodes, current_id, current_id, payloads);
