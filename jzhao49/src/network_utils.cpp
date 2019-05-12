@@ -21,6 +21,8 @@
 #include <arpa/inet.h>
 #include <iostream>
 #include <netdb.h>
+#include <control_handler.h>
+#include <connection_manager.h>
 #include "fstream"
 
 using namespace std;
@@ -50,7 +52,6 @@ ssize_t sendALL(int sock_index, char *buffer, ssize_t nbytes) {
 
 //map<uint16_t , uint16_t > old_dv;
 map <uint16_t , int> update_times;
-
 
 void initialize_dv(map<uint16_t, uint16_t > &DV, map<uint16_t, uint16_t > &next_hops, int router_id, int total_routers){
 
@@ -274,34 +275,15 @@ void display_all_nodes(map<uint16_t , router*> &all_nodes){
 
 
 
-// modify ttl and send pkt to the next hop according to destination
-void route_to_next_hop(char *tcp_pkt, map<uint16_t, uint16_t> &next_hops, map<uint16_t , router*> &all_nodes){
-
-    char* new_pkt = (char *) malloc(sizeof(char) * (1024 + 12));
+void route_to_next_hop( map<uint16_t, uint16_t> &next_hops, map<uint16_t , router*> &all_nodes, uint32_t destination_ip, char* new_pkt, int bytes){
 
 
-    uint32_t destination_ip;
-
-    int destination_id = 0;
     int next_hop_id = 0;
-    uint32_t next_hop_ip = 0;
+    int destination_id = 0;
     uint16_t next_hop_data_port = 0;
-
-    uint8_t post_ttl;
-
-    int bytes = modify_tcp_pkt(new_pkt, tcp_pkt, destination_ip, post_ttl);
-
-    if(post_ttl <= 0) {
-        cout << "pkts dropped " << endl;
-        return;
-    }
+    uint32_t next_hop_ip = 0;
 
 
-    cout << bytes << " bytes: Modified pkt " << endl;
-
-
-
-//    for(auto a : all_nodes)
 
         for(map<uint16_t ,router* >::iterator a = all_nodes.begin(); a != all_nodes.end(); a++)
         {
@@ -549,32 +531,32 @@ void post_crash(map<uint16_t ,uint16_t > &DV,map<uint16_t ,uint16_t > &next_hops
 
 void write_datas_to_file(uint8_t id, vector<char*> &received_data){
 
-//    string p1;
-//    stringstream ss;
-//    ss << unsigned(id);
-//    p1 = ss.str();
-//
-//    string file_name = "file_" + p1;
-//
-//    cout << file_name << endl;
-//
-//    ofstream myfile;
-//    myfile.open (file_name);
-////    for(auto p : received_data)
-//
-////    for(char* p : received_data)
-//
-//    for(int i = 0; i < received_data.size(); i++)
-//    {
-//        char* p = received_data[i];
-//        char* recv = (char*) malloc(1024);
-//        bzero(recv, 1024);
-//        memcpy(recv, p, sizeof(char) * 1024);
-//
-//      myfile << recv;
-//
-//    }
-//    myfile.close();
+    string p1;
+    stringstream ss;
+    ss << unsigned(id);
+    p1 = ss.str();
+
+    string file_name = "file_" + p1;
+
+    cout << file_name << endl;
+
+    ofstream myfile;
+    myfile.open (file_name);
+//    for(auto p : received_data)
+
+//    for(char* p : received_data)
+
+    for(int i = 0; i < received_data.size(); i++)
+    {
+        char* p = received_data[i];
+        char* recv = (char*) malloc(1024);
+        bzero(recv, 1024);
+        memcpy(recv, p, sizeof(char) * 1024);
+
+      myfile << recv;
+
+    }
+    myfile.close();
 
 
 

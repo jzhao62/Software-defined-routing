@@ -19,14 +19,13 @@ extern map<uint16_t , uint16_t > DV;
 extern map<uint16_t , uint16_t > next_hops;
 
 extern map<uint16_t , router*> all_nodes;
-extern vector<char*> received_file_pkts;
-
+extern map<uint16_t , vector<uint16_t > > ttl_seq_mapping;
 
 extern map<uint16_t , routing_packet > neighbors;
 extern uint16_t router_number;
 extern routing_packet self;
 extern vector<char*> received_data;
-
+extern uint16_t self_id;
 
 
 struct Timeout {
@@ -46,8 +45,7 @@ struct Transfer_File {
 extern std::vector<Timeout> routers_timeout;
 extern std::vector<Transfer_File> transfer_files;
 
-extern char *last_packet;
-extern char *penultimate_packet;
+
 extern char *file_buffer;
 extern int datagram_count;
 
@@ -90,3 +88,9 @@ void update(int sock_index, char* payload);
 
 void sendfile(int sock_index, char* cntrl_payload);
 void crash(int sock_index);
+
+void senfile_stats(int sock_index, char* cntrl_payload);
+
+void last_data_packet(int sock_index);
+
+void penultimate_data_packet(int sock_index);

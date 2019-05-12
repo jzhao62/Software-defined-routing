@@ -35,8 +35,8 @@ map<uint16_t , uint16_t > DV;
 
 // key : destination, val : next_hop starting from current node
 map<uint16_t , uint16_t > next_hops;
-
 map<uint16_t , router*> all_nodes;
+map<uint16_t , vector<uint16_t > > ttl_seq_mapping;
 
 
 vector<pair<uint16_t, uint32_t > > immediate_neighbors;
@@ -46,7 +46,9 @@ uint16_t my_router_port;
 
 UDPSocket *router_sock;
 
-vector<char*> received_file_pkts;
+
+
+uint16_t self_id;
 
 
 
@@ -232,10 +234,13 @@ bool control_recv_hook(int sock_index) {
             sendfile(sock_index, cntrl_payload);
             break;
         case SENDFILE_STATS:
+            senfile_stats(sock_index, cntrl_payload);
             break;
         case LAST_DATA_PACKET:
+            last_data_packet(sock_index);
             break;
         case PENULTIMATE_DATA_PACKET:
+            penultimate_data_packet(sock_index);
             break;
 
         default:
@@ -384,6 +389,7 @@ void initialize(int sock_index, char* payload){
             self.cost_from_source = 0;
             my_router_port = curr_router_port;
 
+            self_id == curr_router_id;
 
             string x = print_ip(self.ip);
 
@@ -419,9 +425,8 @@ void initialize(int sock_index, char* payload){
     }
 
 
-    printf("INITIALIZED\n");
+
     display_DV(DV, next_hops);
-    printf("INITIALIZED\n");
 
 
 
@@ -432,7 +437,8 @@ void initialize(int sock_index, char* payload){
     uint16_t payload_len = 0;
 
 
-    ctrl_response_header = create_response_header(sock_index, 0X01, 0X00, payload_len);
+
+    ctrl_response_header = create_response_header(sock_index, 0X01, 0, payload_len);
 
     response_len = CONTROL_HEADER_SIZE + payload_len;
 
@@ -468,6 +474,8 @@ void initialize(int sock_index, char* payload){
     first_time = false;
 
 
+    printf(" init should be complete at this stage \n");
+
 
 
 
@@ -492,9 +500,6 @@ void routing(int sock_index){
 
     int byte = 0;
 
-    string detail = "";
-
-
     for(map<uint16_t ,uint16_t >::iterator a = next_hops.begin(); a != next_hops.end(); a++)
     {
 
@@ -504,10 +509,6 @@ void routing(int sock_index){
         uint16_t hop_id = a->second;
         uint16_t cost = DV[a->first];
 
-        if(cost == 10000) cost = 9;
-
-
-
 
         if(destination < 1 || destination > 5){
             next_hops.erase(destination);
@@ -515,7 +516,18 @@ void routing(int sock_index){
             continue;
         }
 
+
+        if(cost == 10000){
+            cost = INF;
+            hop_id = INF;
+        }
+
+
+
+
         printf("destination %d, hop_id %d, cost %d \n", destination, hop_id, cost);
+
+
 
         destination = htons(destination);
         padding = htons(padding);
@@ -527,7 +539,7 @@ void routing(int sock_index){
         memcpy(ctrl_response_payload+byte,   &hop_id,      sizeof(uint16_t));            byte+=2;
         memcpy(ctrl_response_payload+byte,   &cost,        sizeof(uint16_t));            byte+=2;
     }
-    payload_len = 40;
+    payload_len = byte;
 
 
 
@@ -720,6 +732,7 @@ void sendfile(int sock_index, char* cntrl_payload){
         char* pkt = (char *) malloc(sizeof(char) * (12 + a.second));
 
 
+        ttl_seq_mapping[init_TTL].push_back(seq);
         int bytes = create_tcp_pkt(pkt,destination_ip, transfer_id,  init_TTL, seq++, fin_seq, a.first);
 
 
@@ -753,9 +766,24 @@ void sendfile(int sock_index, char* cntrl_payload){
         const char *cstr = v.c_str();
 
 
+
+
+
         printf("sending pkt to %d\n" , cstr);
         tcp_send_pkt_to_neighbor(cstr, next_hop_data_port, pkt, bytes);
         printf("pkt sent \n");
+
+
+        uint16_t seq1;
+        uint16_t seq2;
+        uint8_t ttl1;
+        uint8_t ttl2;
+
+
+        copy_pkt(second_last_file, last_file, ttl1, seq1);
+        copy_pkt(last_file, pkt, ttl2, seq2);
+
+
 
 
     }
@@ -773,15 +801,134 @@ void sendfile(int sock_index, char* cntrl_payload){
 }
 
 
-void senfile_stats(){
+void senfile_stats(int sock_index, char* cntrl_payload){
+
+    uint8_t transfer_id;
+    uint8_t ttl;
+
+    char ctrl_response_payload [1024];
+
+    char *ctrl_response_header,  *ctrl_response;
+
+    int response_len;
+    uint16_t payload_len = 0;
+
+
+
+    for(map<uint16_t ,vector<uint16_t > >::iterator a = ttl_seq_mapping.begin(); a != ttl_seq_mapping.end(); a++){
+        ttl = a->first;
+    }
+
+    vector<uint16_t > seqs = ttl_seq_mapping[ttl];
+
+
+
+    int byte = 0;
+    uint16_t padding = 0;
+
+    memcpy(ctrl_response_payload + byte, &transfer_id, sizeof(uint8_t)); byte +=1;
+    memcpy(ctrl_response_payload + byte, &ttl, sizeof(uint8_t)); byte +=1;
+    memcpy(ctrl_response_payload + byte, &padding, sizeof(uint16_t)); byte +=2;
+
+    for(int i = 0; i < seqs.size(); i++){
+
+        uint16_t v = htons(seqs[i]);
+
+        memcpy(ctrl_response_payload + byte, &v, sizeof(uint16_t)); byte +=2;
+
+    }
+
+    payload_len = byte;
+
+    cout << "payload byte: " << payload_len << endl;
+
+
+
+
+    ctrl_response_header = create_response_header(sock_index, 0X06, 0, payload_len);
+
+    response_len = CONTROL_HEADER_SIZE + payload_len;
+
+    ctrl_response = (char *) malloc(response_len);
+    memcpy(ctrl_response, ctrl_response_header, CONTROL_HEADER_SIZE);
+    memcpy(ctrl_response + CONTROL_HEADER_SIZE, ctrl_response_payload, payload_len);
+    sendALL(sock_index, ctrl_response, response_len);
+
+
 
 }
 
-void last_data_packet(){
+void last_data_packet(int sock_index){
 
+
+    char* recv= (char*) malloc(1024);
+
+    uint32_t ip;
+    uint32_t fin;
+    uint8_t id;
+    uint8_t ttl;
+    uint16_t seq;
+
+    extract_tcp_pkt(last_file, ip, fin, id,ttl, seq, recv);
+
+
+    cout << "last packet " << unsigned(ttl) << " " << unsigned(id) <<" " << seq << endl;
+
+    cout << strlen(recv) << endl;
+
+
+
+
+
+    char *ctrl_response_header, *ctrl_response_payload, *ctrl_response;
+
+    int response_len;
+    uint16_t payload_len = 0;
+
+
+
+    ctrl_response_header = create_response_header(sock_index, 0X07, 0, payload_len);
+
+    response_len = CONTROL_HEADER_SIZE + payload_len;
+
+    ctrl_response = (char *) malloc(response_len);
+    memcpy(ctrl_response, ctrl_response_header, CONTROL_HEADER_SIZE);
+    memcpy(ctrl_response + CONTROL_HEADER_SIZE, ctrl_response_payload, payload_len);
+    sendALL(sock_index, ctrl_response, response_len);
 }
 
-void penultimate_data_packet(){
+void penultimate_data_packet(int sock_index){
 
+    char* recv= (char*) malloc(1024);
+
+    uint32_t ip;
+    uint32_t fin;
+    uint8_t id;
+    uint8_t ttl;
+    uint16_t seq;
+
+    extract_tcp_pkt(second_last_file, ip, fin, id,ttl, seq, recv);
+
+
+    cout << "2nd last packet " << unsigned(ttl) << " " << unsigned(id) <<" " << seq << endl;
+    cout << strlen(recv) << endl;
+
+
+
+    char *ctrl_response_header, *ctrl_response_payload, *ctrl_response;
+
+    int response_len;
+    uint16_t payload_len = 0;
+
+
+
+    ctrl_response_header = create_response_header(sock_index, 0X08, 0, payload_len);
+
+    response_len = CONTROL_HEADER_SIZE + payload_len;
+
+    ctrl_response = (char *) malloc(response_len);
+    memcpy(ctrl_response, ctrl_response_header, CONTROL_HEADER_SIZE);
+    memcpy(ctrl_response + CONTROL_HEADER_SIZE, ctrl_response_payload, payload_len);
+    sendALL(sock_index, ctrl_response, response_len);
 }
 

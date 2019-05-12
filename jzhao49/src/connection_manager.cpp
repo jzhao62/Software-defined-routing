@@ -148,14 +148,6 @@ void main_loop() {
         if(crashed == true) break;
 
 
-
-//        if(MUTE == 0){
-//            for(auto a : next_expected_time){
-//                cout << a.first << " expected at " << a.second<< endl;
-//            }
-//        }
-
-
         if(next_expected_time.size() == 0){
             display_DV(DV,next_hops);
         }
@@ -269,6 +261,7 @@ void main_loop() {
                     map<uint16_t, uint16_t > prev_dv = DV;
                     map<uint16_t ,uint16_t > prev_hop = next_hops;
 
+
                     update_dv(DV, next_hops, all_nodes, self.router_id, source_id, distant_payload);
 
 
@@ -307,16 +300,27 @@ void main_loop() {
                     extract_tcp_pkt(buffer,destination_ip, fin, id, ttl, seq_number, recv);
 
 
-                    cout << unsigned(id) << " " << fin << endl;
+                    char* new_pkt = (char *) malloc(sizeof(char) * (1024 + 12));
+                    uint8_t post_ttl;
+
+
+                    post_ttl = ttl-1;
+
+                    int bytes = create_tcp_pkt(new_pkt,destination_ip,id,post_ttl,seq_number,fin,recv);
+
+
+                    if(post_ttl <= 0) {
+                        cout << "pkts dropped " << endl;
+                        return;
+                    }
+
 
 
                     if(self.ip == destination_ip){
-                        ttl--;
 
-                        if(ttl <= 0){
-                            cout << "pkt dropped" << endl;
-                            return;
-                        }
+
+                        ttl_seq_mapping[post_ttl].push_back(seq_number);
+
                         received_data.push_back(recv);
 
 
@@ -332,36 +336,70 @@ void main_loop() {
 
 
                         int ofsets_one = copy_pkt(second_last_file, last_file, ttl1, seq1);
-                        int ofsets_two = copy_pkt(last_file, buffer, ttl2, seq2);
+                        int ofsets_two = copy_pkt(last_file, new_pkt, ttl2, seq2);
 
 
                         cout << "-----------DESTINATION----------" << endl;
-                        cout << "           newest pkt " << unsigned(ttl2) << " " << seq2 << endl;
-                        cout << "           2nd newest pkt " << unsigned(ttl1) << " " << seq1 << endl;
+                        cout << "           newest pkt " << unsigned(ttl2) << " " << seq2 << " created with " << ofsets_one << endl;
+                        cout << "           2nd newest pkt " << unsigned(ttl1) << " " << seq1 << " created with " << ofsets_two << endl;
                         cout << "           RECEIVED " << unsigned(ttl) << " " << seq_number << " " << endl;
                         cout << "-----------DESTINATION----------" << endl;
+
+
+//
+//                        char* c1 = (char*) malloc(1024);
+//                        char* c2 = (char*) malloc(1024);
+//                        uint32_t ip;
+//                        uint16_t seq;
+//                        extract_tcp_pkt(last_file, ip, fin, id,ttl, seq, c1);
+//                        extract_tcp_pkt(second_last_file, ip, fin, id,ttl, seq, c2);
+//                        cout << "*****************************" << endl;
+//                        cout << "newest " << endl;
+//                        cout << c1 << endl;
+//                        cout << "old " << endl;
+//                        cout << c2 << endl;
+//                        cout << "*****************************" << endl;
+
+
 
 
                     }
 
                     else{
 
+                        cout << " start routing " << endl;
+
+                        ttl_seq_mapping[post_ttl].push_back(seq_number);
+
                         uint16_t seq1;
                         uint16_t seq2;
                         uint8_t ttl1;
                         uint8_t ttl2;
 
-                        int ofsets_one = copy_pkt(second_last_file, last_file, ttl1, seq1);
-                        int ofsets_two = copy_pkt(last_file, buffer, ttl2, seq2);
+                        copy_pkt(second_last_file, last_file, ttl1, seq1);
+                        copy_pkt(last_file, new_pkt, ttl2, seq2);
 
 
-                        cout << "---------------------------" << endl;
-                        cout << "           newest pkt " << unsigned(ttl2) << " " << seq2 << endl;
-                        cout << "           2nd newest pkt " << unsigned(ttl1) << " " << seq1 << endl;
-                        cout << "---------------------------" << endl;
+//
+//                        char* c1 = (char*) malloc(1024);
+//                        char* c2 = (char*) malloc(1024);
+//                        uint32_t ip;
+//                        uint16_t seq;
+//                        extract_tcp_pkt(last_file, ip, fin, id,ttl, seq, c1);
+//                        extract_tcp_pkt(second_last_file, ip, fin, id,ttl, seq, c2);
+//
+//                        cout << "*****************************" << endl;
+//                        cout << "newest " << c1 << endl;
+//                        cout << "old " << c2 << endl;
+//                        cout << "*****************************" << endl;
+//
 
-                        //decreament the ttl inside
-                        route_to_next_hop(buffer,next_hops,all_nodes);
+
+
+
+
+
+                        route_to_next_hop(next_hops,all_nodes, destination_ip, new_pkt, bytes);
                     }
 
 

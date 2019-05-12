@@ -83,11 +83,11 @@ void extract_routing_packet(uint16_t &number, uint16_t &source_port, uint32_t &s
 
 int create_ROUTING_reponse_payload(char* buffer, map<uint16_t , uint16_t > &DV, map<uint16_t, uint16_t > &next_hops);
 
-int create_tcp_pkt(char* new_pkt, uint32_t destination_ip, uint8_t transfer_id, uint8_t ttl, uint16_t seq_number, uint32_t fin_seq, char* payload);
+int create_tcp_pkt(char* new_pkt,uint32_t destination_ip, uint8_t transfer_id, uint8_t ttl, uint16_t seq_number, uint32_t fin_seq, char* payload);
 
-int modify_tcp_pkt(char* new_pkt, char* pkt, uint32_t &ip,uint8_t &ttl_);
+int modify_tcp_pkt(char* new_pkt, uint32_t destination_ip, char* pkt, uint8_t &ttl_);
 
-void route_to_next_hop(char *tcp_pkt, map<uint16_t, uint16_t> &next_hops, map<uint16_t , router*> &all_nodes);
+void route_to_next_hop(map<uint16_t, uint16_t> &next_hops, map<uint16_t , router*> &all_nodes, uint32_t destination_ip,char* new_pkt, int bytes);
 
 int copy_pkt(char* new_pkt, char* pkt, uint8_t &ttl, uint16_t &seq);
 

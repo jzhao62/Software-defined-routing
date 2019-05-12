@@ -186,27 +186,19 @@ int create_tcp_pkt(char* new_pkt, uint32_t destination_ip, uint8_t transfer_id, 
 
 
 
-int modify_tcp_pkt(char* new_pkt, char* pkt, uint32_t &ip, uint8_t &ttl_){
+int modify_tcp_pkt(char* new_pkt, uint32_t destination_ip, char* pkt,  uint8_t &ttl_){
 
 
     bzero(new_pkt, sizeof(new_pkt));
 
-    uint32_t destination_ip;
     uint8_t transfer_id;
     uint8_t ttl;
     uint16_t seq_number;
-
-
     uint32_t fin_seq;
 
 
     int byte = 0;
-
-    memcpy(&destination_ip, pkt + byte, sizeof(destination_ip)); byte += 4;
-
-    destination_ip = ntohl(destination_ip);
-
-    ip = destination_ip;
+    byte += 4;
 
     memcpy(&transfer_id, pkt + byte, sizeof(uint8_t)); byte += 1;
 
@@ -233,6 +225,10 @@ int modify_tcp_pkt(char* new_pkt, char* pkt, uint32_t &ip, uint8_t &ttl_){
 
     byte = create_tcp_pkt(new_pkt, destination_ip, transfer_id, ttl,  seq_number, fin_seq,  payload);
 
+
+
+
+
     return byte;
 
 
@@ -241,7 +237,7 @@ int modify_tcp_pkt(char* new_pkt, char* pkt, uint32_t &ip, uint8_t &ttl_){
 
 
 int copy_pkt(char* new_pkt, char* pkt, uint8_t &ttl, uint16_t &seq){
-    bzero(new_pkt, sizeof(new_pkt));
+    bzero(new_pkt, 1024 + 12);
 
     uint32_t destination_ip;
     uint8_t transfer_id;
@@ -276,9 +272,6 @@ int copy_pkt(char* new_pkt, char* pkt, uint8_t &ttl, uint16_t &seq){
     char* payload = (char*) malloc(1024);
 
     memcpy(payload, pkt+byte, sizeof(char) * 1024);
-
-
-
 
 
     byte = create_tcp_pkt(new_pkt, destination_ip, transfer_id, ttl,  seq, fin_seq,  payload);
